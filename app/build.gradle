@@ -1,0 +1,169 @@
+plugins {
+    id 'application'
+
+    // https://jreleaser.org/guide/latest/tools/jreleaser-gradle.html
+    id 'org.jreleaser' version '1.22.0'
+
+    // build fatJar (adds task shadowJar)
+    // https://gradleup.com/shadow
+    // https://gradleup.com/shadow/getting-started/#default-java-groovy-tasks
+    /*
+        Note: creates
+            distributions\app-shadow-x.xx.x.zip"
+            and distributions\app-shadow-x.xx.x.tar"
+     */
+    id 'com.gradleup.shadow' version '9.3.1'
+}
+
+version = '0.80.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree ( dir: '../dependencies' )
+
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.3'
+
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += [
+                '../sub-companion/src/main/java',
+                '../sub-core/src/main/java',
+                '../sub-data/src/main/java',
+                '../sub-html/src/main/java',
+                '../sub-json/src/main/java',
+                '../sub-parser/src/main/java',
+                '../sub-reader/src/main/java',
+                '../sub-utils/src/main/java',
+                '../sub-writer/src/main/java',
+                '../sub-xml/src/main/java'
+            ]
+
+            // doesn't work
+            // exclude '../../pp-basics/src/main/java/module-info.java'
+            //    '../pp-text/src/main/java/module-info.java'
+        }
+    }
+
+    main {
+        resources {
+            srcDirs += [
+                '../sub-data/src/main/resources',
+                '../sub-html/src/main/resources'
+            ]
+        }
+    }
+
+    test {
+        java {
+            srcDirs += [
+                '../sub-companion/src/test/java',
+                '../sub-core/src/test/java',
+                '../sub-data/src/test/java',
+                '../sub-html/src/test/java',
+                '../sub-json/src/test/java',
+                '../sub-parser/src/test/java',
+                '../sub-reader/src/test/java',
+                '../sub-utils/src/test/java',
+                '../sub-writer/src/test/java',
+                '../sub-xml/src/test/java'
+            ]
+        }
+    }
+}
+
+java {
+/*
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+ */
+    sourceCompatibility = "17"
+    targetCompatibility = "17"
+}
+
+test {
+    useJUnitPlatform()
+//    jvmArgs += "--enable-preview"
+}
+
+tasks.withType(JavaCompile) {
+    // options.compilerArgs += '-Xlint:preview'
+    // options.compilerArgs += '--enable-preview'
+    options.compilerArgs += '-Xlint:deprecation'
+    options.compilerArgs += '-Xlint:unchecked'
+
+    options.compilerArgs += '--release'
+    options.compilerArgs += '17'
+}
+
+/*
+tasks.withType(JavaExec) {
+    jvmArgs += '--enable-preview'
+}
+ */
+
+application {
+    mainClass = 'dev.ps.pdml.companion.cli.Main'
+    applicationDefaultJvmArgs = ['-ea'] // enable assertions
+}
+
+String myLibName = "ps-pdml"
+String myAppName = "pdmlc"
+
+distZip {
+    archiveBaseName = myAppName + "-java-app"
+}
+
+distTar {
+    archiveBaseName = myAppName + "-java-app"
+}
+
+tasks.startScripts {
+    applicationName = myAppName
+}
+
+jar {
+    archiveBaseName = myLibName
+    manifest {
+        attributes(
+            'Main-Class': 'dev.ps.pdml.companion.cli.Main',
+            'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' ')
+        )
+    }
+}
+
+
+tasks.register ( 'javadocZip', Zip) {
+    group = 'Documentation'
+    description = 'Archives Javadoc into a zip file.'
+    from tasks.javadoc // Include the generated Javadoc files
+    archiveBaseName.set ( "${myLibName}-javadoc" )
+    // archiveVersion.set('1.0.0') // Optional: include a version
+    destinationDirectory.set ( layout.buildDirectory.dir ( 'archives' ) )
+}
+
+// tasks.named ( 'shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar ) {
+tasks.named ( 'shadowJar' ) {
+    destinationDirectory = file ( "$buildDir/fatJar")
+    archiveBaseName = myLibName
+    // archiveClassifier.set('')
+    // archiveVersion.set('')
+}
+
+jreleaser {
+    dryrun = true
+    gitRootSearch = true
+    // basedir = '../'
+    // strict = false
+    configFile = 'jreleaser.yml'
+}

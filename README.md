@@ -1,7 +1,7 @@
 # Full PDML Reference Implementation Written in Java
 
-This repository contains the source code files of the PDML reference implementation written in Java.
+[Core PDML](https://pdml-lang.dev/docs/core/specification/index.html) and all [PDML extensions](https://pdml-lang.dev/docs/extensions/user_manual/index.html) are implemented. Some extensions are experimental.
 
-All PDML extensions are implemented, but they are all experimental. Therefore this implementation is much more elaborate than a simple implementation supporting only Core PDML (without extensions).
-
-For more information about PDML visit the [website](https://pdml-lang.dev/).
+Links:
+- [PDML website](https://pdml-lang.dev/)
+- [pdml-simple-parser](https://github.com/practical-oss/pdml-simple-parser): a simple, minimalist implementation supporting only Core PDML (without extensions).

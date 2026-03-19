@@ -1,0 +1,64 @@
+package dev.pdml.data.util.walker;
+
+import dev.ps.branch.node.data.pdml.BranchNode;
+import dev.ps.leaf.node.data.pdml.CommentLeaf;
+import dev.ps.leaf.node.data.pdml.TextLeaf;
+import dev.ps.shared.annotations.basics.NotNull;
+import dev.ps.shared.annotations.basics.Nullable;
+
+import java.io.IOException;
+
+public interface TreeWalkerEventHandler {
+
+    // TODO is this needed?
+    default void onStart() throws IOException, TreeWalkerException {
+    }
+
+    // TODO is this needed?
+    default void onEnd() throws IOException, TreeWalkerException {
+    }
+
+
+    // Record
+
+    default @Nullable ContinuationKind onBranchNodeStart (
+        @NotNull BranchNode branchNode ) throws IOException, TreeWalkerException {
+        // @NotNull BranchNodeEvent event ) throws IOException, TreeWalkerException {
+
+        return null;
+    }
+
+    default @Nullable ContinuationKind onBranchNodeEnd (
+        @NotNull BranchNode branchNode ) throws IOException, TreeWalkerException {
+        // @NotNull BranchNodeEvent event ) throws IOException, TreeWalkerException {
+
+        return null;
+    }
+
+    /* TODO
+    onAttributesStart
+    onAttributesEnd
+    onAttribute
+
+    onNamespacesStart
+    onNamespacesEnd
+    onNamespace
+     */
+
+
+    // Leafs
+
+    default @Nullable ContinuationKind onTextLeaf (
+        @NotNull TextLeaf textLeaf ) throws IOException, TreeWalkerException {
+        // @NotNull TextLeafEvent event ) throws IOException, TreeWalkerException {
+
+        return null;
+    }
+
+    default @Nullable ContinuationKind onCommentLeaf (
+        @NotNull CommentLeaf commentLeaf ) throws IOException, TreeWalkerException {
+        // @NotNull CommentLeafEvent event ) throws IOException, TreeWalkerException {
+
+        return null;
+    }
+}

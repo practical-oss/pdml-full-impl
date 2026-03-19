@@ -1,0 +1,4 @@
+plugins {
+    id 'java-library'
+    id 'dev.ps.pdml.java-common-conventions'
+}

@@ -1,0 +1,13 @@
+plugins {
+    id 'dev.ps.pdml.java-library-conventions'
+}
+
+dependencies {
+    implementation fileTree ( dir: '../dependencies' )
+
+    api project ( ':sub-core' )
+    api project ( ':sub-data' )
+    api project ( ':sub-parser' )
+    api project ( ':sub-reader' )
+    api project ( ':sub-writer' )
+}

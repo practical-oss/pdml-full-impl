@@ -1,0 +1,15 @@
+package dev.pdml.data.util.walker;
+
+import dev.ps.shared.annotations.basics.NotNull;
+import dev.ps.shared.annotations.basics.Nullable;
+
+public class TreeWalkerException extends Exception {
+
+    public TreeWalkerException ( @NotNull String message, @Nullable Throwable cause ) {
+        super ( message, cause );
+    }
+
+    public TreeWalkerException ( @NotNull String message ) {
+        super ( message );
+    }
+}

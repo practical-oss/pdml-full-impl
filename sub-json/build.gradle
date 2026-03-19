@@ -1,0 +1,12 @@
+plugins {
+    id 'dev.ps.pdml.java-library-conventions'
+}
+
+dependencies {
+    implementation fileTree ( dir: '../dependencies' )
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.3'
+
+    api project ( ':sub-parser' )
+    api project ( ':sub-utils' )
+}

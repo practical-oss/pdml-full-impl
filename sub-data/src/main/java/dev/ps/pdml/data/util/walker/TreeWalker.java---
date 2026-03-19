@@ -1,0 +1,13 @@
+package dev.pdml.data.util.walker;
+
+import dev.ps.branch.node.data.pdml.BranchNode;
+import dev.ps.shared.annotations.basics.NotNull;
+
+import java.io.IOException;
+
+public class TreeWalker {
+
+    void walk ( BranchNode branchNode, @NotNull TreeWalkerEventHandler eventHandler )
+        throws IOException, TreeWalkerException {
+    }
+}
