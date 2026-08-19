@@ -1,7 +1,7 @@
 package dev.ps.pdml.utils.treewalker.handler.impl;
 
-import dev.ps.shared.text.range.TextRange;
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextLocation;
+import dev.ps.shared.text.location.TextPosition;
 import dev.ps.pdml.data.node.NodeTag;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
@@ -108,7 +108,7 @@ public class LoggerParserEventHandler implements PdmlTreeWalkerEventHandler<Node
 
         NodeTag name = event.tag ();
         if ( logRootNodeStart ) {
-            writeEvent ( "Root start", name.startLocation(), name.qualifiedTag () );
+            writeEvent ( "Root start", name.location (), name.qualifiedTag () );
         }
         return name;
     }
@@ -126,7 +126,7 @@ public class LoggerParserEventHandler implements PdmlTreeWalkerEventHandler<Node
 
         NodeTag name = event.tag ();
         if ( logNodeStart ) {
-            writeEvent ( "Node start", name.startLocation(), name.qualifiedTag () );
+            writeEvent ( "Node start", name.location (), name.qualifiedTag () );
         }
         return name;
     }
@@ -168,7 +168,7 @@ public class LoggerParserEventHandler implements PdmlTreeWalkerEventHandler<Node
     }
 
     private void writeEvent (
-        @NotNull String eventName, @Nullable TextRange startLocation, @Nullable String text ) throws IOException {
+        @NotNull String eventName, @Nullable TextLocation startLocation, @Nullable String text ) throws IOException {
 
         if ( separator == null ) {
             write ( StringTruncator.rightPadOrTruncate ( eventName, 11 ) );

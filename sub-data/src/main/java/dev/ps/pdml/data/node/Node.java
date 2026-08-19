@@ -1,6 +1,6 @@
 package dev.ps.pdml.data.node;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.data.node.tagged.ChildNodes;
 import dev.ps.shared.basics.annotations.NotNull;
@@ -17,13 +17,13 @@ public abstract class Node {
     // CAUTION: must only be called by 'TaggedNode' (to ensure data integrity)
     public void setParent ( @Nullable TaggedNode parent ) { this.parent = parent; }
 
-    protected @Nullable TextRange textLocation;
-    public @Nullable TextRange getTextLocation() { return textLocation; }
-    public void setTextLocation ( @Nullable TextRange textLocation ) { this.textLocation = textLocation; }
+    protected @Nullable TextLocation textLocation;
+    public @Nullable TextLocation getTextLocation() { return textLocation; }
+    public void setTextLocation ( @Nullable TextLocation textLocation ) { this.textLocation = textLocation; }
 
 
     protected Node (
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         this.parent = null;
         this.textLocation = textLocation;
@@ -147,4 +147,13 @@ public abstract class Node {
 
     // TODO? public @Nullable List<Node> nextSiblings() {
     // TODO? public @Nullable List<Node> previousSiblings() {
+
+    public void removeFromTree() {
+
+        if ( parent == null ) {
+            throw new IllegalStateException ( "Node cannot be removed from a tree because it's parent is null (i.e. the node is not contained in a tree)." );
+        }
+
+        parent.removeChild ( this );
+    }
 }

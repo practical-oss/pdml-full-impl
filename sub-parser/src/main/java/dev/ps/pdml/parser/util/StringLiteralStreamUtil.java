@@ -3,8 +3,8 @@ package dev.ps.pdml.parser.util;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.inspection.InvalidDataException;
-import dev.ps.shared.text.range.TextRange;
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextLocation;
+import dev.ps.shared.text.location.TextPosition;
 import dev.ps.shared.text.reader.util.NullableParsedString;
 import dev.ps.pdml.data.exception.InvalidPdmlDataException;
 import dev.ps.pdml.data.exception.MalformedPdmlException;
@@ -105,7 +105,7 @@ public class StringLiteralStreamUtil {
                     throw new RuntimeException ( new InvalidPdmlDataException (
                         "Null or empty strings are not allowed.",
                         "INVALID_NULL_STRING",
-                        textSegment.source() ) );
+                        textSegment.location () ) );
                 }
             } );
         }
@@ -127,7 +127,7 @@ public class StringLiteralStreamUtil {
         return textSegmentStream ( pdmlParser, allowNullValues )
             .map ( textSegment -> {
                 String text = textSegment.string ();
-                TextRange location = textSegment.source();
+                TextLocation location = textSegment.location ();
                 if ( text != null ) {
                     try {
                         return elementType.genericObjectToInstance ( text, location );

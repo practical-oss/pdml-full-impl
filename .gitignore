@@ -1,5 +1,8 @@
 # Customized Git scripts
-bin/Git/
+# bin/Git/
+**/bin/
+**/bin/Git/
+**/bin/JReleaser/
 
 # Gradle project-specific cache directory
 **/.gradle

@@ -1,5 +1,6 @@
 package dev.ps.pdml.core.parser;
 
+import dev.ps.pdml.data.util.DemoDocs;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.text.ioresource.reader.StringReaderResource;
 import dev.ps.pdml.data.exception.PdmlException;
@@ -7,12 +8,39 @@ import dev.ps.pdml.data.node.leaf.TextLeaf;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.data.util.NullableTextNode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class CorePdmlParserTest {
+public class CorePdmlParserTest {
+
+    @Test
+    void parseValidDocument() throws IOException {
+
+        String pdmlDoc = DemoDocs.corePdmlDemoDoc();
+        CorePdmlParser parser = createParser ( pdmlDoc );
+        // parseValidDocument ( parser );
+        assertDoesNotThrow ( parser::requireDocument );
+    }
+
+    @ParameterizedTest
+    @CsvSource ( {
+        "root]",
+        "[root",
+        "[]",
+        "[[root]",
+        "[root]]",
+        // "[a:b]",
+        "[a|b]",
+        "[a\1b]" } )
+    void parseInvalidDocument ( String pdmlDoc ) throws IOException {
+
+        CorePdmlParser parser = createParser ( pdmlDoc );
+        assertThrows ( PdmlException.class, parser::requireDocument );
+    }
 
 
     @Test

@@ -4,76 +4,54 @@ import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.writer.node.PdmlNodeWriterConfig;
 import dev.ps.pdml.writer.node.PdmlNodeWriterUtil;
 import dev.ps.shared.basics.annotations.NotNull;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
-import dev.ps.shared.text.ioresource.writer.TextResourceWriter;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
+import dev.ps.shared.text.ioresource.writer.WriterResource;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.io.Writer;
 
 public class XMLToPdmlUtil {
 
-
-    // Basic Methods
-
-    public static @NotNull TaggedNode treeToTree (
+    public static @NotNull TaggedNode xmlToPdmlTree (
         @NotNull Document xmlDocument ) {
 
         return new XMLTreeToPdmlTreeConverter().convert ( xmlDocument );
     }
 
-    public static @NotNull TaggedNode readerToTree (
-        @NotNull TextResourceReader xmlCodeReader )
-        throws SAXException, ParserConfigurationException, IOException {
+    public static @NotNull TaggedNode xmlReaderResourceToPdmlTree (
+        @NotNull ReaderResource xmlReaderResource )
+            throws SAXException, ParserConfigurationException, IOException {
 
-        Document xmlDocument = XMLUtilities.readXMLDocument ( xmlCodeReader );
-        return treeToTree ( xmlDocument );
+        Document xmlDocument = XMLUtilities.readXMLDocument ( xmlReaderResource );
+        return xmlToPdmlTree ( xmlDocument );
     }
 
-    public static void treeToWriter (
-        @NotNull Document xmlDocument,
-        @NotNull TextResourceWriter pdmlCodeWriter,
-        @NotNull PdmlNodeWriterConfig pdmlCodeWriterConfig ) throws IOException {
-        // boolean usePrettyPrinting ) throws IOException {
-
-        TaggedNode pdmlRootNode = treeToTree ( xmlDocument );
-        writePdmlTree ( pdmlRootNode, pdmlCodeWriter, pdmlCodeWriterConfig );
-    }
-
-    public static void readerToWriter (
-        @NotNull TextResourceReader xmlCodeReader,
-        @NotNull TextResourceWriter pdmlCodeWriter,
+    public static void xmlToPdmlResource (
+        @NotNull ReaderResource xmlReaderResource,
+        @NotNull WriterResource pdmlWriterResource,
         @NotNull PdmlNodeWriterConfig pdmlCodeWriterConfig )
             throws SAXException, ParserConfigurationException, IOException {
 
-        @NotNull TaggedNode pdmlRootNode = readerToTree ( xmlCodeReader );
-        writePdmlTree ( pdmlRootNode, pdmlCodeWriter, pdmlCodeWriterConfig );
+        @NotNull TaggedNode pdmlRootNode = xmlReaderResourceToPdmlTree ( xmlReaderResource );
+        writePdmlTree ( pdmlRootNode, pdmlWriterResource, pdmlCodeWriterConfig );
     }
+
 
     private static void writePdmlTree (
         @NotNull TaggedNode pdmlRootNode,
-        @NotNull TextResourceWriter pdmlCodeWriter,
+        @NotNull WriterResource pdmlWriterResource,
         @NotNull PdmlNodeWriterConfig pdmlCodeWriterConfig ) throws IOException {
         // boolean usePrettyPrinting ) throws IOException {
 
         // Could be made faster by piping from reader to writer (no need to build a tree)
 
-        PdmlNodeWriterUtil.write (
-            pdmlCodeWriter.getWriter(), pdmlRootNode, false, pdmlCodeWriterConfig );
+        try ( Writer writer = pdmlWriterResource.newWriter() ) {
+            PdmlNodeWriterUtil.write (
+                writer, pdmlRootNode, false, pdmlCodeWriterConfig );
+            writer.flush();
+        }
     }
-
-
-/*
-    private static @NotNull JsonNode parseJson (
-        @NotNull TextResourceReader jsonCodeReader ) throws IOException {
-
-        ObjectMapper jsonMapper = new ObjectMapper();
-        return jsonMapper.readTree ( jsonCodeReader.getReader() );
-    }
-
- */
-
-
-    // Convenience Methods
 }

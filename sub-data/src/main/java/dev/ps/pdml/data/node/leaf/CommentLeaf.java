@@ -1,6 +1,6 @@
 package dev.ps.pdml.data.node.leaf;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.PdmlExtensionsConstants;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
@@ -10,21 +10,21 @@ public class CommentLeaf extends UntaggedLeafNode {
 
     public static @NotNull String removeDelimiters ( @NotNull String comment ) {
 
-        if ( ! comment.startsWith ( PdmlExtensionsConstants.MULTI_LINE_COMMENT_EXTENSION_START ) ) {
+        if ( ! comment.startsWith ( PdmlExtensionsConstants.BLOCK_COMMENT_START ) ) {
             return comment;
         }
 
         // Count the number of stars used, e.g. ^/** **/ -> 2
         int starsCount = 1;
-        for ( int i = 3; i < comment.length(); i++ ) {
-            if ( comment.charAt ( i ) == PdmlExtensionsConstants.MULTI_LINE_COMMENT_STAR_CHAR ) {
+        for ( int i = 2; i < comment.length(); i++ ) {
+            if ( comment.charAt ( i ) == PdmlExtensionsConstants.BLOCK_COMMENT_STAR_CHAR ) {
                 starsCount++;
             } else {
                 break;
             }
         }
 
-        int startIndex = 2 + starsCount;
+        int startIndex = 1 + starsCount;
         int endIndex = comment.length() - starsCount - 1;
         return comment.substring ( startIndex, endIndex );
     }
@@ -32,7 +32,7 @@ public class CommentLeaf extends UntaggedLeafNode {
 
     public CommentLeaf (
         @NotNull String text,
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         super ( text, textLocation );
     }

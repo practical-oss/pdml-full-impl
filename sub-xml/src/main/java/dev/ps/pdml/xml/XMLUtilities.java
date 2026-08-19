@@ -2,11 +2,8 @@ package dev.ps.pdml.xml;
 
 import dev.ps.pdml.data.PdmlExtensionsConstants;
 import dev.ps.shared.basics.annotations.NotNull;
-import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
-import dev.ps.shared.text.ioresource.writer.TextResourceWriter;
-import dev.ps.shared.text.utilities.file.TextFileReaderUtil;
-import dev.ps.shared.text.utilities.file.TextFileWriterUtil;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
+import dev.ps.shared.text.ioresource.writer.WriterResource;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -21,13 +18,12 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.file.Path;
 
 public class XMLUtilities {
 
+    /*
     public static @Nullable String getOfficialNamespaceURI ( @NotNull String namespacePrefix ) {
 
         if ( namespacePrefix.equals ( XMLConstants.XMLNS_ATTRIBUTE ) ) {
@@ -38,20 +34,22 @@ public class XMLUtilities {
             return null;
         }
     }
+     */
 
     public static @NotNull String getQualifiedNameForNamespaceAttribute ( @NotNull String namespacePrefix ) {
 
         return XMLConstants.XMLNS_ATTRIBUTE + PdmlExtensionsConstants.NAMESPACE_SEPARATOR_CHAR + namespacePrefix;
     }
 
-    public static @NotNull Document XMLFileToXMLDocument ( @NotNull Path XMLFile ) throws Exception {
-        return readXMLDocument ( TextFileReaderUtil.createUTF8FileReader ( XMLFile ) );
-    }
 
-    public static @NotNull Document readXMLDocument ( @NotNull TextResourceReader xmlCodeReader )
+    // Read XML
+
+    public static @NotNull Document readXMLDocument ( @NotNull ReaderResource xmlReaderResource )
         throws IOException, SAXException, ParserConfigurationException {
 
-        return readXMLDocument ( xmlCodeReader.getReader() );
+        try ( Reader reader = xmlReaderResource.newReader() ) {
+            return readXMLDocument ( reader );
+        }
     }
 
     public static @NotNull Document readXMLDocument ( @NotNull Reader reader )
@@ -77,26 +75,21 @@ public class XMLUtilities {
         return builder.parse ( new InputSource( reader ) );
     }
 
-    public static void writeXMLDocumentToFile ( @NotNull Document document, @NotNull Path XMLFile ) throws Exception {
 
-        writeXMLDocument ( document, TextFileWriterUtil.createUTF8FileWriter ( XMLFile, true ) );
-    }
+    // Write XML
 
-    public static void writeXMLDocumentToOSOut ( @NotNull Document document ) throws Exception {
+    public static void writeXMLDocument (
+        @NotNull Document document,
+        @NotNull WriterResource writerResource ) throws IOException, TransformerException {
 
-        writeXMLDocument ( document, new PrintWriter( System.out ) );
+        try ( Writer writer = writerResource.newWriter() ) {
+            writeXMLDocument ( document, writer );
+        }
     }
 
     public static void writeXMLDocument (
         @NotNull Document document,
-        @NotNull TextResourceWriter writer ) throws TransformerException {
-
-        writeXMLDocument ( document, writer.getWriter() );
-    }
-
-    public static void writeXMLDocument (
-        @NotNull Document document,
-        @NotNull Writer writer ) throws TransformerException {
+        @NotNull Writer writer ) throws IOException, TransformerException {
 
         TransformerFactory factory = TransformerFactory.newInstance();
         Transformer transformer = factory.newTransformer();
@@ -107,5 +100,6 @@ public class XMLUtilities {
         // transformer.setOutputProperty ( OutputKeys.OMIT_XML_DECLARATION, "yes" );
 
         transformer.transform ( source, new StreamResult ( writer ) );
+        writer.flush();
     }
 }

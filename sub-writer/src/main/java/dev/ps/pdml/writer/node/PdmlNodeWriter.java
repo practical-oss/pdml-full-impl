@@ -220,7 +220,7 @@ public class PdmlNodeWriter implements Flushable, Closeable {
     public @NotNull PdmlNodeWriter writeNodeName (
         @NotNull NodeTag name ) throws IOException {
 
-        writer.writeNodeName ( name.namespacePrefix(), name.tag () );
+        writer.writeNSAndTag ( name.namespacePrefix(), name.tag () );
         return this;
     }
 
@@ -326,12 +326,12 @@ public class PdmlNodeWriter implements Flushable, Closeable {
     }
 
     public @NotNull PdmlNodeWriter writeCommentLeaf ( @NotNull CommentLeaf commentNode ) throws IOException {
-        writer.writeMultilineComment ( commentNode.getText() );
+        writer.writeBlockComment ( commentNode.getText() );
         return this;
     }
 
     public @NotNull PdmlNodeWriter writeCommentLeafLine ( @NotNull CommentLeaf commentNode ) throws IOException {
-        writer.writeMultilineCommentLine ( commentNode.getText() );
+        writer.writeBlockCommentLine ( commentNode.getText() );
         return this;
     }
 

@@ -9,10 +9,10 @@ class CommentLeafTest {
     @Test
     void removeDelimiters () {
 
-        assertEquals ( "foo", CommentLeaf.removeDelimiters ( "^/*foo*/" ) );
-        assertEquals ( " ", CommentLeaf.removeDelimiters ( "^/* */" ) );
-        assertEquals ( " foo ", CommentLeaf.removeDelimiters ( "^/** foo **/" ) );
-        assertEquals ( " ", CommentLeaf.removeDelimiters ( "^/*** ***/" ) );
+        assertEquals ( "foo", CommentLeaf.removeDelimiters ( "/*foo*/" ) );
+        assertEquals ( " ", CommentLeaf.removeDelimiters ( "/* */" ) );
+        assertEquals ( " foo ", CommentLeaf.removeDelimiters ( "/** foo **/" ) );
+        assertEquals ( " ", CommentLeaf.removeDelimiters ( "/*** ***/" ) );
         assertEquals ( "foo", CommentLeaf.removeDelimiters ( "foo" ) );
     }
 }

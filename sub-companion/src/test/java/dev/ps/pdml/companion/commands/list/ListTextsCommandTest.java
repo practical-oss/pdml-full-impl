@@ -31,12 +31,13 @@ class ListTextsCommandTest {
         input = "[root foo[child_1 bar]foo[child_2 bar]]";
         expectedOutput = "bar, foo";
         TestHelper.testCLICommandWithInputOutputFile (
-            "list_texts",
+            "list-texts",
             tempDir, "in.pdml", "out.pdml",
             input, expectedOutput,
             List.of (
-                "--sort", "true",
-                "--distinct", "true",
+                // "--sort",
+                // "--distinct=true",
+                "-sd",
                 "--separator", ", "),
              false );
     }
@@ -46,7 +47,7 @@ class ListTextsCommandTest {
         @NotNull String expectedOutput ) throws IOException  {
 
         TestHelper.testCLICommandWithInputOutputFile (
-            "list_texts", tempDir,
+            "list-texts", tempDir,
             input, expectedOutput );
     }
 }

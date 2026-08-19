@@ -2,7 +2,7 @@ package dev.ps.pdml.data.util;
 
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.node.NodeTag;
 import dev.ps.pdml.data.node.leaf.TextLeaf;
 import dev.ps.prt.argument.StringArgument;
@@ -14,13 +14,13 @@ public abstract class NullableTextNode {
 
     public abstract @Nullable TextLeaf textLeaf();
 
-    private final @Nullable TextRange location;
-    public @Nullable TextRange location() { return location; }
+    private final @Nullable TextLocation location;
+    public @Nullable TextLocation location() { return location; }
 
 
     public NullableTextNode (
         @NotNull NodeTag tag,
-        @Nullable TextRange location ) {
+        @Nullable TextLocation location ) {
 
         this.tag = tag;
         this.location = location;
@@ -42,11 +42,11 @@ public abstract class NullableTextNode {
 
     public abstract @Nullable String text();
 
-    public @Nullable TextRange tagLocation() {
-        return tag.tagPositionOrRange();
+    public @Nullable TextLocation tagLocation() {
+        return tag.tagLocation ();
     }
 
-    public abstract @Nullable TextRange textLocation();
+    public abstract @Nullable TextLocation textLocation();
 
     public @NotNull StringArgument toStringArgument() {
         return new StringArgument ( tagAsString(), text(), tagLocation(), textLocation() );

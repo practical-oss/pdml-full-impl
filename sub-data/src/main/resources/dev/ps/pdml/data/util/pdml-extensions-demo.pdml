@@ -1,0 +1,256 @@
+[PDML_Extensions_Demo
+
+    This is a valid PDML document showing examples of PDML extensions.
+    For more information about PDML extensions, refer to the
+    "PDML Extensions User Manual", available here:
+    https://pdml-lang.dev/docs/extensions/user-manual/index.html
+
+    [Comments
+
+        ^// line comment
+        Some text ^// trailing line comment
+
+        ^/*
+            Block
+            comment
+            (aka multi-line comment)
+        */
+
+        This is ^/* good */ great.
+
+        ^/* nested
+            ^/* block
+                ^/* comment */
+            */
+        */
+
+        ^/** A comment containing "*/" **/
+    ]
+
+    Note: In the following examples, code prefixed with '→' shows the code
+    you would have to write in Core PDML (without using extensions).
+
+    [Unicode_Escape_Sequences
+
+        [Smiley \u{1F600}]
+        → [Smiley 😀]
+
+        [Some_math_symbols \u{221A 221E 222B}]
+        → [Some_math_symbols √∞∫]
+    ]
+
+    ["String Literals"
+
+        [quoted_string_literal
+
+            [square_brackets ^"[[[]]]"]
+            → [square_brackets \[\[\[\]\]\]]
+
+            ["tag with spaces" text]
+            → [tag\swith\sspaces text]
+        ]
+
+        [raw-string-literal
+
+            [regex ^~[\r\n]*\\~]
+            → [regex \[\\r\\n\]*\\\\]
+
+            [filePath ^~C:\path\to\my file.txt~]
+            → [filePath C:\\path\\to\\my\sfile.txt]
+        ]
+
+        [multiLineStringLiteral
+
+            [html_code ^"""
+                <div>
+                    <p>[Hello]</p>
+                </div>
+                """
+            ]
+            → [html_code <div>
+    <p>\[Hello\]</p>
+</div>]
+
+            ["""
+                Tag with 3 lines
+                Line 2
+                Line 3
+                """ ^"""
+                Text with 3 lines
+                Line 2
+                Line 3
+                """
+            ]
+            → [Tag\swith\s3\slines\nLine\s2\nLine\s3 Text with 3 lines
+Line 2
+Line 3]
+        ]
+    ]
+
+    ["Command Nodes"
+
+        Notes:
+            - You can think of command nodes as function calls that are executed when the document is parsed.
+            - Some command nodes are commented out to avoid parser errors due to unavailable resources.
+
+        You can use the 'ins-file' command node to insert the content of a text file.
+        Data example:
+        ^// ^[ins-file server-config.pdml]
+        Markup example:
+        ^// ^[ins-file chapter_1.pml]
+        ^// ^[ins-file chapter_2.pml]
+
+        Insert text retrieved from a URL:
+        ^// ^[ins-url https://example.com/foo/bar.txt]
+
+        Insert the value of OS environment variable 'TEXT_COLOR' (or default to 'white'):
+        ^// Text color: ^[ins-env TEXT_COLOR [default white]]
+
+        Insert the value entered by the user in a GUI dialog:
+        ^// Text color: ^[ins-gui-input [prompt Enter a color:]]
+
+        Execute an OS command and insert the text written to STDOUT:
+        ^// Output of prog.exe: ^[ins-cmdo [cmd path/to/prog.exe --arg1 value_1 --arg2 "value 2"]]
+
+        You can define a constant and then insert it multiple times:
+        ^[const [pi 3.1415]]
+        Circumference: ^[ins-const pi] * r * 2
+        → Circumference: 3.1415 * r * 2
+        Area: ^[ins-const pi] * r * r
+        → Area: 3.1415 * r * r
+
+        A constant can be used to define the value of a subsequent constant:
+        ^[const [website_url https://example.com]]
+        ^[const [blog_url ^[ins-const website_url]/blog]]
+        Our Blog URL: ^[ins-const blog_url]
+        → Our Blog URL: https://example.com/blog
+
+        You can use a command node to define the value of a constant:
+        ^/*
+            ^[const [pi ^[ins-file ../math/pi.txt]]]
+            ^[const [e ^[ins-env E]]]
+            ^[const [color ^[ins-gui-input [prompt Enter a color:]]]]
+        */
+    ]
+
+    [Attributes
+
+        [p ^(id=my-id style="color: green;") This text is green.]
+
+        [rectangle ^(
+            color = "light green"
+            width = 200
+            height = 100)
+        ]
+        Same rectangle definition using only Core PDML:
+        [rectangle
+            [color light green]
+            [width 200]
+            [height 100]
+        ]
+    ]
+
+    [Java_Scripting_Nodes
+
+        "Java scripting command nodes" allow you to insert Java (not JavaScrip) source code into a PDML document.
+        The source code is executed at parse-time and allows you to use the full power of Java to simplify and
+        automate the creation of PDML documents.
+        Note: This is an experimental feature.
+
+        [ins-exp-demo
+            You can use an 'ins-exp' command node to insert a Java expression into a PDML document:
+            1 + 1 = ^[ins-exp "1 + 1"]
+            → 1 + 1 = 2
+            Current date: ^[ins-exp java.time.LocalDate.now()]
+        ]
+
+        [script-demo
+            You can use a 'script' command node to execute a set of Java statements.
+
+            The following script inserts the Unicode code points U+1F600 to U+1F605 () into the PDML document:
+            ^[script
+                """
+                StringBuilder sb = new StringBuilder();
+                for ( int u = 0x1F600; u <= 0x1F605; u++ ) {
+                    sb.appendCodePoint ( u );
+                }
+                ctx.doc().insertText ( sb.toString() );
+                """
+            ]
+            → 😀😁😂😃😄😅
+        ]
+
+        [class-demo
+
+            You can define a Java class and then use the class later in the PDML document:
+
+            ^[def
+                """
+                package test;
+
+                import java.util.List;
+
+                public class MarkupUtils {
+
+                    public static String simpleList ( String... elements ) {
+
+                        StringBuilder sb = new StringBuilder();
+                        sb.append ( "[list " );
+                        for ( String element : elements ) {
+                            sb.append ( "[el " )
+                              .append ( element )
+                              .append ( "]" );
+                        }
+                        sb.append ( "]" );
+                        return sb.toString();
+                    }
+
+                    public static String redOnYellow ( String text ) {
+                        return "[p ^(html_style=\"color:red; background-color:yellow;\") " + text + "]";
+                    }
+                }
+                """
+            ]
+
+            Use the above class to insert a list of fruits:
+            [p List of fruits: ^[ins-exp """
+                test.MarkupUtils.simpleList (
+                    "apple",
+                    "orange",
+                    "banana" )
+                """]]
+            → List of fruits: [list [el apple][el orange][el banana]]
+
+            Use the above class to insert a "red on yellow" text:
+            ^[ins-exp ~test.MarkupUtils.redOnYellow ( "Warning!" )~]
+            → [p ^(html_style="color:red; background-color:yellow;") Warning!]
+        ]
+    ]
+
+    ["User Defined Command Nodes"
+
+        Besides using standard PDML command nodes, you can define your own command nodes,
+        and then use them later in the document (experimental feature).
+
+        Create a new command node:
+        ^[script
+            """
+            import dev.ps.pdml.cmdnode.*;
+
+            CommandNode commandNode = new CommandNodeBuilder ( "my_cmd_node" )
+                .executor ( (args, context, tag) ->
+                    new CommandNodeResult ( "Simple example of a user-defined command node.", false ) )
+                .build();
+
+            ctx.addCommandNode ( commandNode );
+            """
+        ]
+
+        Use the new command node:
+        ^[my_cmd_node]
+        → Simple example of a user-defined command node.
+
+        You can store user defined command nodes in external files and then import them into different
+        PDML documents using 'ins-file' command nodes.
+    ]
+]

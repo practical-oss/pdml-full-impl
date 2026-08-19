@@ -37,7 +37,7 @@ public class AppendToStringParametersParserEventHandler
             throw new PdmlException (
                 "Node '" + parentStartEvent.tag().qualifiedTag() + "' cannot have child nodes.",
                 "CHILD_NODE_NOT_ALLOWED",
-                startEvent.tag().tagPositionOrRange() );
+                startEvent.tag().tagLocation() );
         }
 
         @NotNull String name = startEvent.tag ().qualifiedTag ();
@@ -45,7 +45,7 @@ public class AppendToStringParametersParserEventHandler
             throw new PdmlException (
                 "Node '" + name + "' has already been defined.",
                 "KEY_EXISTS_ALREADY",
-                startEvent.tag().tagPositionOrRange() );
+                startEvent.tag().tagLocation() );
         }
 
         currentNameToken = startEvent.tag ().qualifiedTagToken ();

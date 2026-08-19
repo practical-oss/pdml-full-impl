@@ -1,5 +1,6 @@
 package dev.ps.pdml.companion.commands;
 
+import dev.ps.pdml.companion.PdmlcApplication;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.utilities.file.TextFileReaderUtil;
@@ -57,7 +58,7 @@ public class TestHelper {
             cliArguments.addAll ( additionalCLIArguments );
         }
 
-        PdmlCommands.runCommand ( cliArguments.toArray ( String[]::new ), false );
+        PdmlcApplication.INSTANCE.runCommand ( cliArguments.toArray ( String[]::new ), false );
 
         assertTrue ( Files.exists ( outputFile ) );
         String result = TextFileReaderUtil.readAllFromUTF8File ( outputFile );

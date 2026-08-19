@@ -8,7 +8,7 @@ import dev.ps.pdml.data.util.NullableTextNode;
 import dev.ps.pdml.parser.PdmlParser;
 import dev.ps.pdml.parser.PdmlParserConfig;
 import dev.ps.prt.argument.StringArguments;
-import dev.ps.prt.argument.StringArgumentsBuilder;
+import dev.ps.prt.argument.MutableStringArguments;
 import dev.ps.prt.type.scalar.ScalarType;
 
 import java.io.IOException;
@@ -107,9 +107,9 @@ public class TextNodesUtil {
         boolean allowNullValues ) throws IOException, InvalidDataException {
         // TODO? @NotNull DuplicateKeyPolicy duplicateKeyPolicy,
 
-        StringArgumentsBuilder builder = new StringArgumentsBuilder();
+        MutableStringArguments builder = new MutableStringArguments ();
         TextNodeStreamUtil.forEachStringArgument ( builder::append, pdmlParser, allowNullValues );
-        return builder.buildOrNull();
+        return builder.toImmutableOrNull ();
     }
 
     public static @Nullable StringArguments parseAsStringArguments (

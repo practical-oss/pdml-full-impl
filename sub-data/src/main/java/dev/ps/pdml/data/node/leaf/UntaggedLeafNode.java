@@ -1,6 +1,6 @@
 package dev.ps.pdml.data.node.leaf;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.node.Node;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
@@ -18,7 +18,7 @@ public abstract class UntaggedLeafNode extends Node {
 
     protected UntaggedLeafNode (
         @NotNull String text,
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         super ( textLocation );
         checkTextNotEmpty ( text );

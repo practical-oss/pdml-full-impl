@@ -181,7 +181,7 @@ class CorePdmlTokenReaderTest {
         CorePdmlTokenReader reader = createReader ( pdmlCode );
         assertEquals ( expectedText, reader.readTextFragment (
             CorePdmlConstants.TEXT_LEAF_END_CHARS, CorePdmlConstants.INVALID_TEXT_LEAF_CHARS,
-            CorePdmlConstants.TAG_AND_TEXT_ESCAPE_CODE_POINTS, true ) );
+            CorePdmlConstants.CODE_POINT_ESCAPES, true ) );
     }
 
 
@@ -217,7 +217,7 @@ class CorePdmlTokenReaderTest {
         ParsedString<?> parsedString = reader.readWithTextRange ( CorePdmlTokenReader::readTextLeaf );
         assertNotNull ( parsedString );
         assertEquals ( "12\t\n[]", parsedString.string() );
-        assertEquals ( "1:1..2:4 12\\t\n\\[\\]", parsedString.source().toDebugString() );
+        assertEquals ( "1:1..2:4 12\\t\n\\[\\]", parsedString.location ().toDebugString() );
     }
 
     @Test
@@ -228,7 +228,7 @@ class CorePdmlTokenReaderTest {
         ParsedString<?> parsedString = reader.readWithTextPosition ( CorePdmlTokenReader::readTextLeaf );
         assertNotNull ( parsedString );
         assertEquals ( "12\t\n[]", parsedString.string() );
-        assertEquals ( "1:1.._:_ null", parsedString.source().toDebugString() );
+        assertEquals ( "1:1.._:_ null", parsedString.location ().toDebugString() );
     }
 
 

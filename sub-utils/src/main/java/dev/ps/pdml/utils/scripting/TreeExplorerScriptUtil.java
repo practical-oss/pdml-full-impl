@@ -6,9 +6,7 @@ import dev.ps.pdml.parser.util.ParseASTUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.pjse.PjseConfig;
 import dev.ps.pjse.util.interfaces.FailableConsumerUtil;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
-
-import java.nio.file.Path;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
 
 public class TreeExplorerScriptUtil {
 
@@ -30,6 +28,7 @@ public class TreeExplorerScriptUtil {
     }
      */
 
+    /*
     public static void explorePdmlFile (
         @NotNull Path pdmlCodeFile,
         @NotNull Path explorerJavaSourceCodeFile,
@@ -42,6 +41,7 @@ public class TreeExplorerScriptUtil {
             exploreCode ( pdmlReader, javaSourceCodeReader, isOnlyJavaMethodBodyCode, psjeConfig );
         }
     }
+     */
 
     /*
     public static void exploreCode (
@@ -57,28 +57,28 @@ public class TreeExplorerScriptUtil {
      */
 
     public static void exploreCode (
-        @NotNull TextResourceReader pdmlCodeReader,
-        @NotNull TextResourceReader javaSourceCodeReader,
+        @NotNull ReaderResource pdmlReaderResource,
+        @NotNull ReaderResource javaSourceCodeReaderResource,
         boolean isOnlyJavaMethodBodyCode,
         @NotNull PjseConfig psjeConfig ) throws Exception {
 
-        @NotNull TaggedNode rootNode = ParseASTUtil.parseReader (
-            pdmlCodeReader, PdmlParserConfig.defaultConfig() );
-        exploreTree ( rootNode, javaSourceCodeReader, isOnlyJavaMethodBodyCode, psjeConfig );
+        @NotNull TaggedNode rootNode = ParseASTUtil.parseReaderResource (
+            pdmlReaderResource, PdmlParserConfig.defaultConfig() );
+        exploreTree ( rootNode, javaSourceCodeReaderResource, isOnlyJavaMethodBodyCode, psjeConfig );
     }
 
     public static void exploreTree (
         @NotNull TaggedNode rootNode,
-        @NotNull TextResourceReader javaSourceCodeReader,
+        @NotNull ReaderResource javaSourceCodeReaderResource,
         boolean isOnlyJavaMethodBodyCode,
         @NotNull PjseConfig psjeConfig ) throws Exception {
 
         if ( isOnlyJavaMethodBodyCode ) {
             FailableConsumerUtil.callAcceptMethodFromMethodBodySourceCode (
-                javaSourceCodeReader, "rootNode", TaggedNode.class, rootNode, psjeConfig );
+                javaSourceCodeReaderResource, "rootNode", TaggedNode.class, rootNode, psjeConfig );
         } else {
             FailableConsumerUtil.callAcceptMethodInClassSourceCode (
-                javaSourceCodeReader, "pdml.TreeExplorer", rootNode, psjeConfig );
+                javaSourceCodeReaderResource, "pdml.TreeExplorer", rootNode, psjeConfig );
         }
     }
 }

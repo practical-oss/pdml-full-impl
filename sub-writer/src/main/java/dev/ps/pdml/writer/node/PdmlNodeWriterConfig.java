@@ -25,6 +25,7 @@ public class PdmlNodeWriterConfig extends PdmlWriterConfig {
         boolean useTabIndent,
         @NotNull LineBreakKind lineBreakKind,
         boolean writeUnquotedAttributeValuesIfPossible ) {
+        // TODO? useSpaceForAllSeparators
 
         super ( indentSize, useTabIndent, lineBreakKind );
         this.writeUnquotedAttributeValuesIfPossible = writeUnquotedAttributeValuesIfPossible;

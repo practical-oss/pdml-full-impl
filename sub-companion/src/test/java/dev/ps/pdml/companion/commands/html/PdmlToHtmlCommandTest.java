@@ -16,9 +16,9 @@ class PdmlToHtmlCommandTest {
     void execute() throws IOException {
 
         TestHelper.testCLICommandWithInputOutputFile (
-            "PDML_to_HTML", tempDir,
+            "pdml-to-html-tree", tempDir,
             "input.pdml", "out/result.html",
             "[root text]", "<html lang=\"en\">",
-            List.of ( "--open_browser", "false" ), true );
+            List.of ( "--open-browser=false" ), true );
     }
 }

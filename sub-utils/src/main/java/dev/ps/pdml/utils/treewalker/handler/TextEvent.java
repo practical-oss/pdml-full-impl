@@ -2,7 +2,7 @@ package dev.ps.pdml.utils.treewalker.handler;
 
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextPosition;
 
 public record TextEvent(
     @NotNull String text,

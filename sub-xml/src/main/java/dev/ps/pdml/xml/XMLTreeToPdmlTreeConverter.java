@@ -4,7 +4,7 @@ import dev.ps.pdml.data.node.NodeTag;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.prt.argument.StringArguments;
-import dev.ps.prt.argument.StringArgumentsBuilder;
+import dev.ps.prt.argument.MutableStringArguments;
 import org.w3c.dom.*;
 
 public class XMLTreeToPdmlTreeConverter {
@@ -39,7 +39,7 @@ public class XMLTreeToPdmlTreeConverter {
             return;
         }
 
-        StringArgumentsBuilder builder = new StringArgumentsBuilder();
+        MutableStringArguments builder = new MutableStringArguments ();
         NamedNodeMap namedNodeMap = xmlElement.getAttributes();
         for ( int i = 0; i < namedNodeMap.getLength(); i++ ) {
             Node xmlNode = namedNodeMap.item ( i );
@@ -53,7 +53,7 @@ public class XMLTreeToPdmlTreeConverter {
                     "XML nodes of type '" + xmlNode.getClass() + "' are not supported for attributes." );
             }
         }
-        StringArguments arguments = builder.buildOrNull();
+        StringArguments arguments = builder.toImmutableOrNull ();
         if ( arguments != null ) {
             taggedNode.setStringAttributes ( arguments );
         }

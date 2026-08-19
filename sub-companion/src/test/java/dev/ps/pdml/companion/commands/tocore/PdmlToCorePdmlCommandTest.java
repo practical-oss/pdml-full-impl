@@ -23,11 +23,12 @@ class PdmlToCorePdmlCommandTest {
             [root
             ^// comment
             ^[const c1 = foo]
-                ^[ins_const c1]
-                1 + 1 = ^[ins_exp 1 + 1]
+                ^[ins-const c1]
+                1 + 1 = ^[ins-exp "1 + 1"]
             ]""";
         expectedOutput = """
             [root
+
 
                 foo
                 1 + 1 = 2
@@ -40,7 +41,7 @@ class PdmlToCorePdmlCommandTest {
         @NotNull String expectedOutput ) throws IOException  {
 
         TestHelper.testCLICommandWithInputOutputFile (
-            "PDML_to_Core_PDML", tempDir,
+            "pdml-to-core-pdml", tempDir,
             input, expectedOutput );
     }
 }

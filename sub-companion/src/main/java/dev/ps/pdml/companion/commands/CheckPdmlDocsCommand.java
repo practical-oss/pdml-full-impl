@@ -1,95 +1,86 @@
 package dev.ps.pdml.companion.commands;
 
+import dev.ps.pdml.companion.PdmlcApplication;
+import dev.ps.prt.parameter.CommonParameters;
+import dev.ps.shared.text.inspection.InvalidDataException;
+import dev.ps.shared.text.inspection.message.TextInspectionMessageUtil;
 import dev.ps.shared.text.ioresource.reader.FileReaderResource;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
 import dev.ps.shared.text.ioresource.reader.StdinReaderResource;
-import dev.ps.prt.command.Command;
+import dev.ps.prt.command.cli.CLICommand;
 import dev.ps.shared.basics.utilities.documentation.SimpleDocumentation;
-import dev.ps.pdml.data.exception.PdmlException;
 import dev.ps.pdml.parser.PdmlParserConfig;
 import dev.ps.pdml.parser.util.ParseASTUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.inspection.handler.TextInspectionMessageHandler;
 import dev.ps.prt.argument.Arguments;
-import dev.ps.prt.command.output.CommandOutput;
-import dev.ps.prt.command.output.ErrorCommandOutput;
-import dev.ps.prt.command.output.ResultCommandOutput;
+import dev.ps.prt.command.output.CLICommandOutput;
+import dev.ps.prt.command.output.FailureCLICommandOutput;
+import dev.ps.prt.command.output.SuccessCLICommandOutput;
 import dev.ps.prt.parameter.Parameters;
 
 import java.nio.file.Path;
 import java.util.List;
 
-import static dev.ps.pdml.companion.commands.PdmlCommands.APP_NAME;
 import static dev.ps.pdml.companion.commands.SharedParameters.*;
 
-public class CheckPdmlDocsCommand extends Command {
+public class CheckPdmlDocsCommand extends CLICommand {
 
 
-    public static final @NotNull CheckPdmlDocsCommand COMMAND = new CheckPdmlDocsCommand();
-
+    public static final @NotNull CheckPdmlDocsCommand INSTANCE = new CheckPdmlDocsCommand();
 
     private CheckPdmlDocsCommand() {
         super (
-            "check_PDML_docs", "ch",
-            new Parameters ( OPTIONAL_PDML_INPUT_FILES ),
+            "check-pdml-docs", "check",
+            new Parameters ( PDML_INPUT_FILES_OR_STDIN ),
             () -> new SimpleDocumentation (
                 "Check PDML Documents For Errors",
                 "Parse one or more PDML documents and report errors encountered.",
-                APP_NAME + " ch -i input/document.pdml" ) );
+                PdmlcApplication.CLI_APP_NAME + " check -i input/document.pdml" ) );
     }
 
 
-    public @NotNull CommandOutput execute ( @Nullable Arguments arguments ) {
+    public @NotNull CLICommandOutput execute ( @Nullable Arguments arguments ) {
 
         assert arguments != null;
 
-        @Nullable List<Path> inputFiles = arguments.nullableCastedValue ( OPTIONAL_PDML_INPUT_FILES );
+        @NotNull List<Path> pdmlInputFiles = arguments.nonNullCastedValue ( PDML_INPUT_FILES_OR_STDIN );
         // DebugUtils.writeNameValue ( "arguments", arguments );
         // DebugUtils.writeNameValue ( "inputFiles", inputFiles );
 
         PdmlParserConfig config = PdmlParserConfig.defaultConfig();
-        // boolean success = true;
-        Exception parserException = null;
+        int errorCount = 0;
 
-        if ( inputFiles != null ) {
-            for ( Path pdmlFile : inputFiles ) {
-                // try ( TextResourceReader reader = new TextResourceReader ( pdmlFile ) ) {
-                //    ParseASTUtil.parseReader ( reader, config );
-                try {
-                    // ReaderResource reader = new FileReaderResource ( pdmlFile )
-                    ParseASTUtil.parseReaderResource ( new FileReaderResource ( pdmlFile ), config );
-                } catch ( Exception e ) {
-                    reportError ( e );
-                    if ( parserException == null ) {
-                        parserException = e;
-                    }
-                }
-            }
-        } else {
+        for ( Path pdmlFile : pdmlInputFiles ) {
             try {
-                // ParseASTUtil.parseReader ( TextResourceReader.STDIN_READER, config );
-                ParseASTUtil.parseReaderResource ( StdinReaderResource.INSTANCE, config );
+                ReaderResource readerResource = pdmlFile.equals ( CommonParameters.STDIN_FILE_PATH )
+                    ? StdinReaderResource.INSTANCE
+                    : new FileReaderResource ( pdmlFile );
+                ParseASTUtil.parseReaderResource ( readerResource, config );
             } catch ( Exception e ) {
                 reportError ( e );
-                parserException = e;
+                errorCount++;
             }
         }
 
-        if ( parserException == null ) {
-            return new ResultCommandOutput<> ( "No errors detected." );
+        if ( errorCount == 0 ) {
+            return SuccessCLICommandOutput.ofMessage ( "No errors detected." );
         } else {
-            return new ErrorCommandOutput ( "Errors detected." );
+            // String message = errorCount == 1 ? "One error reported." : errorCount + " errors reported.";
+            // return new FailureCommandOutput ( message );
+            return FailureCLICommandOutput.ofVoid();
         }
     }
 
     private static void reportError ( @NotNull Exception e ) {
 
-        if ( e instanceof PdmlException pdmlException ) {
-            TextInspectionMessageHandler handler = TextInspectionMessageHandler.newDefaultHandler();
-            handler.handleMessage ( pdmlException.toTextInspectionError() );
-
+        String message;
+        if ( e instanceof InvalidDataException invalidDataException ) {
+            message = TextInspectionMessageUtil.messageToDisplayString (
+                invalidDataException.toTextInspectionError(), true );
         } else {
-            System.err.println ( e.getMessage() );
+            message = e.getMessage();
         }
+        System.err.println ( message );
     }
 }

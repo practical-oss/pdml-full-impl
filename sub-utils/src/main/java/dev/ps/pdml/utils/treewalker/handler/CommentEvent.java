@@ -1,6 +1,6 @@
 package dev.ps.pdml.utils.treewalker.handler;
 
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextPosition;
 import dev.ps.pdml.data.node.leaf.CommentLeaf;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;

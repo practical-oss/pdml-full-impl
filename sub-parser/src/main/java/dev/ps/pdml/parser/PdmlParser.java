@@ -1,10 +1,12 @@
 package dev.ps.pdml.parser;
 
+import dev.ps.pdml.cmdnode.*;
+import dev.ps.pdml.core.util.EscapeUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
-import dev.ps.shared.text.range.*;
-import dev.ps.shared.text.reader.util.NullableParsedString;
+import dev.ps.shared.text.ioresource.reader.StringReaderResource;
+import dev.ps.shared.text.location.*;
 import dev.ps.shared.text.reader.util.ParsedString;
 import dev.ps.shared.text.unicode.reader.CodePointReader;
 import dev.ps.shared.text.unicode.reader.InMemoryCodePointReader;
@@ -24,19 +26,17 @@ import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.data.nodespec.PdmlNodeSpec;
 import dev.ps.pdml.data.nodespec.PdmlNodeSpecs;
 import dev.ps.pdml.data.util.WhitespaceUtil;
-import dev.ps.pdml.ext.DelegatingExtensionNodesHandler;
-import dev.ps.pdml.ext.ExtensionNodeHandlers;
-import dev.ps.pdml.ext.InsertReaderResourceExtensionResult;
-import dev.ps.pdml.ext.scripting.context.DocScriptingContext;
-import dev.ps.pdml.ext.scripting.context.PdmlScriptingContext;
-import dev.ps.pdml.ext.types.PdmlType;
-import dev.ps.pdml.ext.types.PdmlTypes;
+import dev.ps.pdml.cmdnode.scripting.context.DocScriptingContext;
+import dev.ps.pdml.cmdnode.scripting.context.PdmlScriptingContext;
+import dev.ps.pdml.cmdnode.types.PdmlType;
+import dev.ps.pdml.cmdnode.types.PdmlTypes;
+import dev.ps.pdml.parser.PdmlParserConstants.ScopeConfig;
 import dev.ps.pdml.reader.PdmlTokenReader;
 import dev.ps.pjse.PjseConfig;
 import dev.ps.pjse.util.scriptingenv.JavaScriptingEnvironmentWithFixedContext;
 import dev.ps.prt.argument.StringArgument;
 import dev.ps.prt.argument.StringArguments;
-import dev.ps.prt.argument.StringArgumentsBuilder;
+import dev.ps.prt.argument.MutableStringArguments;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -44,86 +44,10 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 import static dev.ps.pdml.data.PdmlExtensionsConstants.*;
+import static dev.ps.pdml.parser.PdmlParserConstants.*;
 
 public class PdmlParser extends CorePdmlParser {
 
-
-    // Private Static
-
-    private static final @NotNull Set<Character> SHARED_BARE_STRING_END_CHARS =
-        Set.of ( ' ', '\t', '\n', '\r', EXTENSION_START_CHAR );
-
-    private static final @NotNull Set<Character> BARE_STRING_END_CHARS_IN_TAG =
-        addToCharSet ( SHARED_BARE_STRING_END_CHARS,
-            CorePdmlConstants.NODE_END_CHAR,
-            NAMESPACE_SEPARATOR_CHAR );
-
-    private static final @NotNull Set<Character> BARE_STRING_END_CHARS_IN_TEXT_LEAF =
-        addToCharSet ( SHARED_BARE_STRING_END_CHARS,
-            CorePdmlConstants.NODE_END_CHAR,
-            CorePdmlConstants.NODE_START_CHAR );
-
-    private static final @NotNull Set<Character> BARE_STRING_END_CHARS_IN_ATTRIBUTE_NAME =
-        addToCharSet ( SHARED_BARE_STRING_END_CHARS,
-            ATTRIBUTE_ASSIGN_CHAR );
-
-    private static final @NotNull Set<Character> BARE_STRING_END_CHARS_IN_ATTRIBUTE_VALUE =
-        addToCharSet ( SHARED_BARE_STRING_END_CHARS,
-            ATTRIBUTES_END_CHAR,
-            CorePdmlConstants.NODE_END_CHAR );
-
-    private static final @NotNull Set<Character> TEXT_SNIPPET_END_CHARS =
-        addToCharSet ( CorePdmlConstants.TEXT_LEAF_END_CHARS,
-            EXTENSION_START_CHAR );
-
-    private static final @NotNull Set<Character> QUOTED_STRING_LITERAL_SNIPPET_END_CHARS =
-        addToCharSet ( QUOTED_STRING_LITERAL_END_CHARS,
-            EXTENSION_START_CHAR );
-
-    private static @NotNull Set<Character> addToCharSet (
-        @NotNull Set<Character> charSet,
-        char... chars ) {
-
-        Set<Character> result = new HashSet<> ( charSet );
-        for ( char c : chars ) {
-            result.add ( c );
-        }
-        return Collections.unmodifiableSet ( result );
-    }
-
-    private static enum CurrentScope {
-        TEXT_LEAF, NODE_TAG, ATTRIBUTE_NAME, ATTRIBUTE_VALUE, STRING_LITERAL
-    }
-
-    private static class PendingsChars {
-
-        private final @NotNull StringBuilder chars;
-        private @NotNull TextPosition startPosition;
-
-
-        PendingsChars ( @NotNull TextPosition startPosition ) {
-            this.chars = new StringBuilder();
-            this.startPosition = startPosition;
-        }
-
-
-        boolean isEmpty() {
-            return chars.isEmpty();
-        }
-
-        @Nullable String getString() {
-            return chars.isEmpty() ? null : chars.toString();
-        }
-
-        void append ( @NotNull String string ) {
-            chars.append ( string );
-        }
-
-        void reset ( @NotNull TextPosition startPosition ) {
-            chars.delete ( 0, chars.length() );
-            this.startPosition = startPosition;
-        }
-    }
 
     private static final int DEFAULT_LOOKAHEAD = 500;
 
@@ -137,10 +61,12 @@ public class PdmlParser extends CorePdmlParser {
     private final @NotNull PdmlParserConfig config;
     public @NotNull PdmlParserConfig config() { return config; }
 
-    private final @NotNull DelegatingExtensionNodesHandler extensionNodesHandler;
-    public @NotNull DelegatingExtensionNodesHandler extensionNodesHandler () {
-        return extensionNodesHandler;
+    private final @NotNull GlobalCommandNodeExecutor commandNodeExecutor;
+    /* TODO?
+    public @NotNull CommandNodeExecutor commandNodeExecutor() {
+        return commandNodeExecutor;
     }
+     */
 
     private final @Nullable PdmlNodeSpecs nodeSpecs;
 
@@ -161,13 +87,13 @@ public class PdmlParser extends CorePdmlParser {
     private PdmlParser (
         @NotNull PdmlTokenReader pdmlReader,
         @NotNull PdmlParserConfig config,
-        @NotNull DelegatingExtensionNodesHandler extensionNodesHandler ) {
+        @NotNull GlobalCommandNodeExecutor commandNodeExecutor ) {
 
         super ( pdmlReader, config );
 
         this.pdmlReader = pdmlReader;
         this.config = config;
-        this.extensionNodesHandler = extensionNodesHandler;
+        this.commandNodeExecutor = commandNodeExecutor;
         this.nodeSpecs = config.getNodeSpecs();
         this.types = config.getTypes();
         this.allowAttributesWithoutCaret = config.getAllowAttributesWithoutCaret();
@@ -179,18 +105,19 @@ public class PdmlParser extends CorePdmlParser {
         @NotNull PdmlParserConfig config ) throws IOException {
 
         DocScriptingContext docScriptingContext = new DocScriptingContext();
-        PdmlScriptingContext scriptingContext = new PdmlScriptingContext ( docScriptingContext );
+        PdmlScriptingContext scriptingContext = new PdmlScriptingContext (
+            config.commandNodes(), docScriptingContext );
         JavaScriptingEnvironmentWithFixedContext<PdmlScriptingContext> scriptingEnvironment =
             new JavaScriptingEnvironmentWithFixedContext<> (
                 scriptingContext, "ctx", PjseConfig.DEFAULT_CONFIG );
-        DelegatingExtensionNodesHandler delegatingExtensionNodeHandler =
-            new DelegatingExtensionNodesHandler (
-                ExtensionNodeHandlers.STANDARD_HANDLERS, scriptingEnvironment );
+
+        GlobalCommandNodeExecutor commandNodeExecutor =   new DelegatingCommandNodeExecutor (
+            config.commandNodes(), scriptingEnvironment );
 
         PdmlTokenReader pdmlReader = new PdmlTokenReader ( cpReader );
         docScriptingContext.setPdmlReader ( pdmlReader );
 
-        return new PdmlParser ( pdmlReader, config, delegatingExtensionNodeHandler );
+        return new PdmlParser ( pdmlReader, config, commandNodeExecutor );
     }
 
     public static @NotNull PdmlParser create (
@@ -221,6 +148,39 @@ public class PdmlParser extends CorePdmlParser {
     // Overridden Methods
 
     @Override
+    public void skipWhitespaceBeforeRootNode() throws IOException, PdmlException {
+
+        while ( true ) {
+            if ( pdmlReader.skipWhitespace() ) continue;
+            if ( pdmlReader.isAtExtensionStartChar() ) {
+                handleExtension ( null, null, DOCUMENT_START_CONFIG );
+            } else {
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void requireDocumentEnd() throws IOException, PdmlException {
+
+        // Skip whitespace and comments
+        while ( true ) {
+            if ( pdmlReader.isAtEnd() ) break;
+            if ( pdmlReader.skipWhitespace() ) continue;
+            if ( pdmlReader.isAtString ( PdmlTokenReader.LINE_OR_BLOCK_COMMENT_EXTENSION_START ) ) {
+                pdmlReader.skipExtensionStartChar();
+                pdmlReader.skipLineOrBlockComment();
+            } else {
+                break;
+            }
+        }
+
+        if ( pdmlReader.isNotAtEnd() ) {
+            throw malformedErrorAtCurrentPosition ( "Text after the end of a PDML document is not allowed (except whitespace).", "END_OF_PDML_DOCUMENT_EXPECTED" );
+        }
+    }
+
+    @Override
     public @Nullable TaggedNode parseTaggedNode() throws IOException, PdmlException {
 
         long startOffset = pdmlReader.currentCodePointOffset();
@@ -245,22 +205,20 @@ public class PdmlParser extends CorePdmlParser {
     public @Nullable NodeTag parseTag() throws IOException, PdmlException {
 
         @Nullable ParsedString<?> parsedTagOrNamespaceString = parseWithTextRange (
-        parser -> parser.parseStringLiteralOrNull (
-            BARE_STRING_END_CHARS_IN_TAG, CurrentScope.NODE_TAG ) );
+        parser -> parser.parseStringLiteralOrNull ( TAG_CONFIG ) );
         if ( parsedTagOrNamespaceString == null ) {
             return null;
         }
 
         if ( ! pdmlReader.skipNamespaceSeparator() ) {
-            return new NodeTag ( parsedTagOrNamespaceString.string(), parsedTagOrNamespaceString.source(), null, null );
+            return new NodeTag ( parsedTagOrNamespaceString.string(), parsedTagOrNamespaceString.location (), null, null );
         }
 
         @Nullable ParsedString<?> parsedTagString = parseWithTextRange (
-            parser -> parser.parseStringLiteralOrNull (
-                BARE_STRING_END_CHARS_IN_TAG, CurrentScope.NODE_TAG ) );
+            parser -> parser.parseStringLiteralOrNull ( TAG_CONFIG ) );
         if ( parsedTagString != null ) {
-            return new NodeTag ( parsedTagString.string(), parsedTagString.source(),
-                parsedTagOrNamespaceString.string(), parsedTagOrNamespaceString.source() );
+            return new NodeTag ( parsedTagString.string(), parsedTagString.location (),
+                parsedTagOrNamespaceString.string(), parsedTagOrNamespaceString.location () );
         } else {
             throw malformedErrorAtCurrentPosition (
                 "Tag required after namespace prefix '" + parsedTagOrNamespaceString.string() + "'.",
@@ -274,7 +232,7 @@ public class PdmlParser extends CorePdmlParser {
         @Nullable ParsedString<?> parsedString = parseWithTextRange (
             PdmlParser::parseTextLeafAsStringAndIgnoreComments );
         return parsedString != null
-            ? new TextLeaf ( parsedString.string(), parsedString.source() )
+            ? new TextLeaf ( parsedString.string(), parsedString.location () )
             : null;
 
     }
@@ -312,82 +270,54 @@ public class PdmlParser extends CorePdmlParser {
     // Text Leaf
 
     public @Nullable String parseTextLeafAsStringAndIgnoreComments() throws IOException, PdmlException {
-
-        return parseTextFragmentsAndIgnoreComments (
-            CurrentScope.TEXT_LEAF,
-            TEXT_SNIPPET_END_CHARS,
-            CorePdmlConstants.INVALID_TEXT_LEAF_CHARS,
-            CorePdmlConstants.TAG_AND_TEXT_ESCAPE_CODE_POINTS );
+        return parseTextFragmentsAndIgnoreComments ( TEXT_LEAF_CONFIG );
     }
 
     public @Nullable String parseTrimmedTextLeafAsStringAndIgnoreComments() throws IOException, PdmlException {
 
-        @Nullable String result = parseTextLeafAsStringAndIgnoreComments ();
-        if ( result == null ) {
-            return null;
-        } else {
-            return WhitespaceUtil.trim ( result );
-        }
-    }
-
-    public void consumeTextLeafFragmentsAndComments (
-        @NotNull BiConsumer<String, TextPosition> textFragmentConsumer,
-        @NotNull BiConsumer<String, TextPosition> commentConsumer ) throws IOException, PdmlException {
-
-        consumeTextFragmentsAndComments (
-            textFragmentConsumer,
-            commentConsumer,
-            CurrentScope.TEXT_LEAF,
-            TEXT_SNIPPET_END_CHARS,
-            CorePdmlConstants.INVALID_TEXT_LEAF_CHARS,
-            CorePdmlConstants.TAG_AND_TEXT_ESCAPE_CODE_POINTS );
+        @Nullable String result = parseTextLeafAsStringAndIgnoreComments();
+        return result != null ? WhitespaceUtil.trim ( result ) : null;
     }
 
     private @Nullable String parseTextFragmentsAndIgnoreComments (
-        @NotNull CurrentScope currentScope,
-        @NotNull Set<Character> endChars,
-        @NotNull Set<Character> invalidChars,
-        @NotNull Map<@NotNull Integer, @NotNull Integer> charEscapeMap ) throws IOException, PdmlException {
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
 
         StringBuilder result = new StringBuilder();
         consumeTextFragmentsAndComments (
             ( textFragment, location ) -> result.append ( textFragment ),
-            ( comment, location ) -> {},
-            currentScope, endChars, invalidChars, charEscapeMap );
+            null, scopeConfig );
         return result.isEmpty() ? null : result.toString();
+    }
+
+    public void consumeTextLeafFragmentsAndComments (
+        @NotNull BiConsumer<String, TextPosition> textFragmentConsumer,
+        @Nullable BiConsumer<String, TextPosition> commentConsumer ) throws IOException, PdmlException {
+
+        consumeTextFragmentsAndComments ( textFragmentConsumer, commentConsumer, TEXT_LEAF_CONFIG );
     }
 
     private void consumeTextFragmentsAndComments (
         @NotNull BiConsumer<String, TextPosition> textFragmentConsumer,
-        @NotNull BiConsumer<String, TextPosition> commentConsumer,
-        @NotNull CurrentScope currentScope,
-        @NotNull Set<Character> endChars,
-        @NotNull Set<Character> invalidChars,
-        @NotNull Map<@NotNull Integer, @NotNull Integer> charEscapeMap ) throws IOException, PdmlException {
-
-        PendingsChars pendingChars = new PendingsChars ( pdmlReader.currentTextPosition() );
+        @Nullable BiConsumer<String, TextPosition> commentConsumer,
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
 
         while ( true ) {
             if ( pdmlReader.isAtExtensionStartChar() ) {
-                handleExtension (
-                    textFragmentConsumer, commentConsumer, pendingChars, currentScope );
+                handleExtension ( textFragmentConsumer, commentConsumer, scopeConfig );
             } else {
                 // TODO don't use readTextFragment; use readText or readTag, depending on currentScope
-                String textFragment = pdmlReader.readTextFragment ( endChars, invalidChars, charEscapeMap, true );
+                // String textFragment = pdmlReader.readTextFragment ( endChars, invalidChars, charEscapeMap, true );
+                TextPosition startPosition = pdmlReader.currentTextPosition();
+                String textFragment = pdmlReader.readTextFragment (
+                    scopeConfig.bareStringEndChars(), scopeConfig.bareStringInvalidChars(), scopeConfig.codePointEscapes(), true );
                 if ( textFragment != null) {
-                    pendingChars.chars.append ( textFragment );
+                    textFragmentConsumer.accept ( textFragment, startPosition );
                 } else {
                     break;
                 }
             }
         }
-
-        if ( ! pendingChars.isEmpty() ) {
-            textFragmentConsumer.accept ( pendingChars.getString(), pendingChars.startPosition );
-            // charsSb.delete ( 0, charsSb.length() );
-        }
     }
-
 
     // Parse From To
 
@@ -456,92 +386,99 @@ public class PdmlParser extends CorePdmlParser {
 
     // Extensions
 
-    private boolean handleExtension (
-        @NotNull BiConsumer<String, TextPosition> charsConsumer,
-        @NotNull BiConsumer<String, TextPosition> commentConsumer,
-        @NotNull PendingsChars pendingsChars,
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
+    private void handleExtension (
+        @Nullable BiConsumer<String, TextPosition> textSegmentConsumer,
+        @Nullable BiConsumer<String, TextPosition> commentConsumer,
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
+
+        assert pdmlReader.isAtExtensionStartChar();
+
+        boolean hasCodeSegments = false;
+        List<@NotNull ReaderResource> readerResources = new ArrayList<>();
 
         // Loop because there might be several extension nodes concatenated, e.g.:
-        // ^u{set c=v}^{get c}
-        while ( pdmlReader.currentCodePoint() == PdmlExtensionsConstants.EXTENSION_START_CHAR ) {
+        // ^[ins-file ...]^[ins-file ...]
+        while ( pdmlReader.skipExtensionStartChar() ) {
 
-            int nextCodePoint = pdmlReader.peekNextCodePoint();
-            if ( nextCodePoint == -1 ) {
+            if ( pdmlReader.isAtEnd() ) {
                 throw malformedErrorAtCurrentPosition (
                     "Expecting more characters to specify the extension.",
                     "INCOMPLETE_EXTENSION_SYNTAX" );
             }
 
-            switch ( nextCodePoint ) {
+            String textFragment = null;
+            TextPosition textFragmentStartPosition = null;
 
-                case SINGLE_OR_MULTI_LINE_COMMENT_START_CHAR -> {
-                    if ( config.isIgnoreComments() ) {
-                        parseComment ( commentConsumer, currentScope );
-                    } else {
-                        if ( ! pendingsChars.isEmpty() ) {
-                            charsConsumer.accept ( pendingsChars.getString(), pendingsChars.startPosition );
-                        }
-                        parseComment ( commentConsumer, currentScope );
-                        pendingsChars.reset ( pdmlReader.currentTextPosition() );
-                    }
+            int currentCodePoint = pdmlReader.currentCodePoint();
+            switch ( currentCodePoint ) {
+
+                case LINE_OR_BLOCK_COMMENT_START_CHAR -> {
+                    parseComment ( commentConsumer, scopeConfig );
                 }
 
-                case QUOTED_STRING_LITERAL_DELIMITER_CHAR, RAW_STRING_LITERAL_START_CHAR -> {
-                    String string = parseStringLiteralExtension ( currentScope );
-                    if ( string != null ) {
-                        pendingsChars.append ( string );
+                case QUOTED_STRING_LITERAL_DELIMITER_CHAR, RAW_STRING_LITERAL_DELIMITER_CHAR -> {
+                    textFragmentStartPosition = pdmlReader().currentTextPosition();
+                    textFragment = parseStringLiteralExtension ( scopeConfig );
+                }
+
+                case CorePdmlConstants.NODE_START_CHAR -> {
+                    textFragmentStartPosition = pdmlReader().currentTextPosition();
+                    @Nullable CommandNodeResult result = commandNodeExecutor.executeCommand (
+                        pdmlReader, this );
+                    if ( result != null ) {
+                        if ( ! result.escapeText() ) {
+                            readerResources.add ( result.readerResource() );
+                            hasCodeSegments = true;
+                        } else {
+                            textFragment = result.readerResource().readAll();
+                        }
                     }
                 }
 
                 default -> {
-                    @Nullable InsertReaderResourceExtensionResult result = extensionNodesHandler.handleExtensionNode (
-                        pdmlReader, this );
-                    if ( result != null ) {
-                        // @Nullable String string = result.string();
-                        // if ( string != null ) {
-                            // if ( result.format() == InsertStringFormat.AS_IS ) {
-                            if ( ! result.escapeText() ) {
-                                // TODO reader.insertStringToRead ( string, result.readerResource() );
-                                // reader.insertStringToRead ( string, (ReaderResource) result.readerResource () );
-                                pdmlReader.insertReaderResource ( result.readerResource() );
-                            } else {
-                                // charsSb.append ( PdmlEscapeUtil.escapeNodeText ( string ) );
-                                // pendingsChars.append ( string );
-                                String text = result.readerResource().readAll();
-                                if ( text != null ) {
-                                    pendingsChars.append ( text );
-                                }
-                            }
-                        // }
-                    }
+                    throw malformedErrorAtCurrentPosition (
+                        "Invalid character '" + Character.toString ( currentCodePoint ) + "'.",
+                        "INVALID_EXTENSION_SYNTAX" );
+                }
+            }
+
+            if ( textFragment != null && ! textFragment.isEmpty() ) {
+                if ( ! hasCodeSegments && textSegmentConsumer != null ) {
+                    textSegmentConsumer.accept ( textFragment, textFragmentStartPosition );
+                } else {
+                    readerResources.add ( new StringReaderResource ( EscapeUtil.toText ( textFragment ) ) );
                 }
             }
         }
-        return false;
+
+        // Insert in reverse order because 'insertReaderResource' INSERTS at the current position
+        for ( ReaderResource readerResource : readerResources.reversed() ) {
+            pdmlReader.insertReaderResource ( readerResource );
+        }
     }
 
 
     // Comments
 
     private void parseComment (
-        @NotNull BiConsumer<String, TextPosition> commentConsumer,
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
+        @Nullable BiConsumer<String, TextPosition> commentConsumer,
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
 
-        if ( currentScope != CurrentScope.TEXT_LEAF ) {
+        if ( ! scopeConfig.commentsAllowed() ) {
             throw malformedErrorAtCurrentPosition (
                 "Comments are not allowed in this context.",
                 "INVALID_COMMENT" );
         }
 
-        if ( config.isIgnoreComments() ) {
-            boolean skipped = pdmlReader.skipSingleOrMultilineComment();
-            assert skipped;
-        } else {
+        // reader is at /
+        if ( commentConsumer != null && ! config.isIgnoreComments() ) {
             TextPosition position = pdmlReader.currentTextPosition();
-            String comment = pdmlReader.readSingleOrMultilineComment();
+            String comment = pdmlReader.readLineOrBlockComment();
             assert comment != null;
             commentConsumer.accept ( comment, position );
+        } else {
+            boolean skipped = pdmlReader.skipLineOrBlockComment();
+            assert skipped;
         }
     }
 
@@ -617,7 +554,7 @@ public class PdmlParser extends CorePdmlParser {
     private @Nullable StringArguments parseAttributesUntilEndChar ( char endChar )
         throws IOException, PdmlException {
 
-        StringArgumentsBuilder builder = new StringArgumentsBuilder();
+        MutableStringArguments builder = new MutableStringArguments ();
         boolean isFirstAttribute = true;
 
         while ( true ) {
@@ -638,20 +575,25 @@ public class PdmlParser extends CorePdmlParser {
             isFirstAttribute = false;
         }
 
-        return builder.buildOrNull();
+        return builder.toImmutableOrNull ();
     }
 
-    private void requireAttributesEnd() throws IOException {
+    private void requireAttributesEnd() throws IOException, InvalidPdmlDataException {
 
-        boolean hasEnd = pdmlReader.skipAttributesEnd();
-        assert hasEnd;
+        if ( ! pdmlReader.skipAttributesEnd() ) {
+            throw dataErrorAtCurrentPosition (
+                "'" + ATTRIBUTES_END_CHAR + "' is required to end the attributes.",
+                "ATTRIBUTES_END_REQUIRED" );
+        }
+
+        // skip optional space after attributes end
         pdmlReader.skipChar ( ' ' );
     }
 
     public @Nullable StringArgument parseAttribute() throws IOException, PdmlException {
 
-        ParsedString<?> parsedName = parseWithTextRange ( p -> p.parseEmptyableStringLiteral (
-            BARE_STRING_END_CHARS_IN_ATTRIBUTE_NAME, CurrentScope.ATTRIBUTE_NAME ) );
+        ParsedString<?> parsedName = parseWithTextRange (
+            p -> p.parseEmptyableStringLiteral ( ATTRIBUTE_NAME_CONFIG ) );
         if ( parsedName == null ) {
             return null;
         }
@@ -660,7 +602,7 @@ public class PdmlParser extends CorePdmlParser {
             throw dataError (
                 "Missing name. Null (empty) names are not allowed.",
                 "INVALID_NULL_NAME",
-                parsedName.source() );
+                parsedName.location () );
         }
 
         // =
@@ -673,8 +615,8 @@ public class PdmlParser extends CorePdmlParser {
         pdmlReader.skipWhitespace();
 
         // Value
-        ParsedString<?> parsedValue = parseWithTextRange ( p -> p.parseEmptyableStringLiteral (
-            BARE_STRING_END_CHARS_IN_ATTRIBUTE_VALUE, CurrentScope.ATTRIBUTE_VALUE ) );
+        ParsedString<?> parsedValue = parseWithTextRange (
+            p -> p.parseEmptyableStringLiteral ( ATTRIBUTE_VALUE_CONFIG ) );
         if ( parsedValue == null ) {
             throw malformedErrorAtCurrentPosition (
                 "Expecting a value. A value cannot start with '" + pdmlReader.currentCodePointAsString() + "'.",
@@ -685,7 +627,7 @@ public class PdmlParser extends CorePdmlParser {
             value = null;
         }
 
-        return new StringArgument ( name, value, parsedName.source(), parsedValue.source() );
+        return new StringArgument ( name, value, parsedName.location (), parsedValue.location () );
     }
 
     public @NotNull StringArgument requireAttribute() throws IOException, PdmlException {
@@ -715,7 +657,7 @@ public class PdmlParser extends CorePdmlParser {
             pdmlReader.skipWhitespace();
             pdmlReader.skipString ( NAMESPACE_DECLARATIONS_EXTENSION_START );
 
-            char endChar = PdmlExtensionsConstants.NAMESPACE_DECLARATIONS_END;
+            char endChar = PdmlExtensionsConstants.NAMESPACE_DECLARATIONS_END_CHAR;
             // @NotNull StringArguments attributes = parseAttributesBetweenDelimiters ( startPosition, endChar );
             @Nullable StringArguments attributes = parseAttributesUntilEndChar ( endChar );
             pdmlReader.skipChar ( endChar );
@@ -750,7 +692,7 @@ public class PdmlParser extends CorePdmlParser {
                 NodeNamespace existingNamespace = currentNamespacesInScope.getByPrefix ( prefix );
 
                 String message = "Namespace '" +  prefix + "' has already been declared";
-                TextRange por = existingNamespace.namePrefixPositionOrRange();
+                TextLocation por = existingNamespace.namePrefixPositionOrRange();
                 // TextPosition position = por != null ? por.startLineColumn_OLD () : null;
                 // if ( position != null ) message = message + " at" +
                 //    StringConstants.OS_LINE_BREAK + position;
@@ -810,62 +752,40 @@ public class PdmlParser extends CorePdmlParser {
     // String Literals
 
     public @Nullable String parseStringLiteralOrNullInTextLeaf() throws IOException, PdmlException {
-        return parseStringLiteralOrNull ( BARE_STRING_END_CHARS_IN_TEXT_LEAF, CurrentScope.TEXT_LEAF );
+        return parseStringLiteralOrNull ( BARE_STRING_LITERAL_CONFIG );
     }
-
-    private @Nullable String parseStringLiteralOrNull (
-        @NotNull Set<Character> bareStringEndChars,
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
-
-        String result = parseEmptyableStringLiteral ( bareStringEndChars, currentScope );
-        if ( result != null && result.isEmpty() ) {
-            return null;
-        } else {
-            return result;
-        }
-    }
-
-    /*
-    private @Nullable ParsedString<FromToTextRange> parseStringLiteralOrNullWithRange (
-        @NotNull Set<Character> bareStringEndChars,
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
-
-        String result = parseEmptyableStringLiteral ( bareStringEndChars, currentScope );
-        if ( result != null && result.isEmpty() ) {
-            return null;
-        } else {
-            return result;
-        }
-    }
-     */
 
     public @Nullable String parseEmptyableStringLiteralInTextLeaf()
         throws IOException, PdmlException {
 
-        return parseEmptyableStringLiteral (
-            BARE_STRING_END_CHARS_IN_TEXT_LEAF, CurrentScope.TEXT_LEAF );
+        return parseEmptyableStringLiteral ( BARE_STRING_LITERAL_CONFIG );
+    }
+
+    private @Nullable String parseStringLiteralOrNull (
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
+
+        String result = parseEmptyableStringLiteral ( scopeConfig );
+        if ( result != null && result.isEmpty() ) {
+            return null;
+        } else {
+            return result;
+        }
     }
 
     private @Nullable String parseEmptyableStringLiteral (
-        @NotNull Set<Character> bareStringEndChars,
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
 
         if ( pdmlReader.isAtChar ( QUOTED_STRING_LITERAL_DELIMITER_CHAR ) ) {
             if ( pdmlReader.isAtString ( MULTILINE_STRING_LITERAL_DELIMITER ) ) {
                 return pdmlReader.requireMultilineStringLiteral ();
             } else {
-                return parseQuotedStringLiteral ( currentScope );
+                return parseQuotedStringLiteral();
             }
-        } else if ( pdmlReader.isAtChar ( RAW_STRING_LITERAL_START_CHAR ) ) {
+        } else if ( pdmlReader.isAtChar ( RAW_STRING_LITERAL_DELIMITER_CHAR ) ) {
             return pdmlReader.requireRawStringLiteral ();
         } else {
             // bare string literal
-            return parseTextFragmentsAndIgnoreComments (
-                currentScope,
-                // CorePdmlConstants.INVALID_TAG_CHARS,
-                bareStringEndChars,
-                CorePdmlConstants.INVALID_TAG_CHARS,
-                CorePdmlConstants.TAG_AND_TEXT_ESCAPE_CODE_POINTS );
+            return parseTextFragmentsAndIgnoreComments ( scopeConfig );
         }
     }
 
@@ -878,8 +798,7 @@ public class PdmlParser extends CorePdmlParser {
     }
      */
 
-    private @NotNull String parseQuotedStringLiteral (
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
+    private @NotNull String parseQuotedStringLiteral() throws IOException, PdmlException {
 
         final char delimiter = QUOTED_STRING_LITERAL_DELIMITER_CHAR;
 
@@ -891,15 +810,11 @@ public class PdmlParser extends CorePdmlParser {
             return "";
         }
 
-        @Nullable String result = parseTextFragmentsAndIgnoreComments (
-            currentScope,
-            QUOTED_STRING_LITERAL_SNIPPET_END_CHARS,
-            QUOTED_STRING_LITERAL_INVALID_CHARS,
-            QUOTED_STRING_LITERAL_ESCAPE_CODE_POINTS );
+        @Nullable String result = parseTextFragmentsAndIgnoreComments ( QUOTED_STRING_LITERAL_CONFIG );
 
         if ( ! pdmlReader.skipChar ( delimiter ) ) {
             throw dataError (
-                "Missing closing " + delimiter + " to end the text. Text quoted with " + delimiter + " must be closed with a subsequent " + delimiter + ".",
+                "Expecting a subsequent " + delimiter + " to end the quoted string literal.",
                 "CLOSING_QUOTE_REQUIRED",
                 startPosition );
         }
@@ -908,25 +823,23 @@ public class PdmlParser extends CorePdmlParser {
     }
 
     private @Nullable String parseStringLiteralExtension (
-        @NotNull CurrentScope currentScope ) throws IOException, PdmlException {
+        @NotNull ScopeConfig scopeConfig ) throws IOException, PdmlException {
 
-        if ( currentScope != CurrentScope.TEXT_LEAF ) {
+        if ( ! scopeConfig.stringLiteralsAllowed() ) {
             throw malformedErrorAtCurrentPosition (
                 "String literal extensions are not allowed in this context.",
                 "INVALID_COMMENT" );
         }
-
-        boolean ok = pdmlReader.skipExtensionStartChar ();
-        assert ok;
 
         String string;
         if ( pdmlReader.isAtChar ( QUOTED_STRING_LITERAL_DELIMITER_CHAR ) ) {
             if ( pdmlReader.isAtString ( PdmlExtensionsConstants.MULTILINE_STRING_LITERAL_DELIMITER ) ) {
                 string = pdmlReader.requireMultilineStringLiteral ();
             } else {
-                string = parseQuotedStringLiteral ( CurrentScope.STRING_LITERAL );
+                // string = parseQuotedStringLiteral ( CurrentScope.STRING_LITERAL );
+                string = parseQuotedStringLiteral();
             }
-        } else if ( pdmlReader.isAtChar ( RAW_STRING_LITERAL_START_CHAR ) ) {
+        } else if ( pdmlReader.isAtChar ( RAW_STRING_LITERAL_DELIMITER_CHAR ) ) {
             string = pdmlReader.requireRawStringLiteral ();
         } else {
             throw new IllegalStateException ( "Unexpected string literal extension" );
@@ -934,7 +847,6 @@ public class PdmlParser extends CorePdmlParser {
 
         return string.isEmpty() ? null : string;
     }
-
 
     // Convenience Methods
 
@@ -953,51 +865,17 @@ public class PdmlParser extends CorePdmlParser {
             return null;
         }
 
-        TextRange parentRange = pdmlReader.codePointReader().parentReaderPosition();
+        TextLocation parentRange = pdmlReader.codePointReader().parentReaderPosition();
 
         // If the readerResource has changed then use only the start position,
         // otherwise use the range (start and end)
-        TextRange textRange = readerResource == pdmlReader.currentResource()
+        TextLocation textLocation = readerResource == pdmlReader.currentResource()
             ? new FromToTextRangeWithCodePointOffsets (
                 readerResource, startOffset, pdmlReader.currentCodePointOffset(), parentRange )
             : new TextPositionWithCodePointOffset ( readerResource, startOffset, parentRange );
 
-        return new ParsedString<> ( string, textRange );
+        return new ParsedString<> ( string, textLocation );
     }
-
-    public @Nullable String parseTextLeafAsStringLiteral()
-        throws IOException, PdmlException {
-
-        return parseStringLiteralOrNull (
-            BARE_STRING_END_CHARS_IN_TEXT_LEAF, CurrentScope.STRING_LITERAL );
-    }
-
-    public @Nullable String parseTrimmedTextLeafAsStringLiteral()
-        throws IOException, PdmlException {
-
-        pdmlReader.skipWhitespaceAndComments();
-        String result = parseTextLeafAsStringLiteral();
-        pdmlReader.skipWhitespaceAndComments();
-        return result;
-    }
-
-    public @Nullable NullableParsedString<TextPosition> parseTrimmedTextOrStringLiteral()
-        throws IOException, PdmlException {
-
-        pdmlReader.skipWhitespaceAndComments();
-        TextPosition position = pdmlReader.currentTextPosition();
-        @Nullable String string;
-        if ( pdmlReader.isAtChar ( '"' ) ||
-            pdmlReader.isAtChar ( '~' ) ) {
-            string = parseStringLiteralOrNull (
-                TEXT_SNIPPET_END_CHARS, CurrentScope.TEXT_LEAF );
-            pdmlReader.skipWhitespaceAndComments();
-        } else {
-            string = parseTrimmedTextLeafAsStringAndIgnoreComments ();
-        }
-        return string != null ? new NullableParsedString<> ( string, position ) : null;
-    }
-
 
     public @Nullable String parseTextLeafAsTrimmedTextOrStringLiteral()
         throws IOException, PdmlException {
@@ -1007,11 +885,10 @@ public class PdmlParser extends CorePdmlParser {
         // TextToken textToken = reader.currentCharToken();
         if ( pdmlReader.isAtChar ( '"' ) ||
             pdmlReader.isAtChar ( '~' ) ) {
-            string = parseStringLiteralOrNull (
-                TEXT_SNIPPET_END_CHARS, CurrentScope.TEXT_LEAF );
+            string = parseStringLiteralOrNull ( BARE_STRING_LITERAL_CONFIG );
             pdmlReader.skipWhitespaceAndComments();
         } else {
-            string = parseTrimmedTextLeafAsStringAndIgnoreComments ();
+            string = parseTrimmedTextLeafAsStringAndIgnoreComments();
         }
         return string;
     }
@@ -1029,7 +906,7 @@ public class PdmlParser extends CorePdmlParser {
             throw dataError (
                 "Type '" + typeName + "' doesn't exist, but is assigned to node '" + taggedNode.getTag() + "'.",
                 "INVALID_TYPE",
-                taggedNode.getTag().startLocation() );
+                taggedNode.getTag().location () );
         }
 
         // type.parseValidateAndHandleObject ( this, taggedNode,false );
@@ -1042,16 +919,10 @@ public class PdmlParser extends CorePdmlParser {
 
     // Error handling
 
-    private MalformedPdmlException malformedErrorAtCurrentPosition (
-        @NotNull String message, @NotNull String id ) {
-
-        return new MalformedPdmlException ( message, id, pdmlReader.currentTextPosition() );
-    }
-
     private InvalidPdmlDataException dataError (
-        @NotNull String message, @NotNull String id, @Nullable TextRange positionOrRange ) {
+        @NotNull String message, @NotNull String id, @Nullable TextLocation location ) {
 
-        return new InvalidPdmlDataException ( message, id, positionOrRange );
+        return new InvalidPdmlDataException ( message, id, location );
     }
 
     private InvalidPdmlDataException dataErrorAtCurrentPosition (

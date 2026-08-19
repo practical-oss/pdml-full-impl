@@ -32,7 +32,7 @@ class PdmlNodeWriterTest {
             .append ( "a1", "v 1" )
             .append ( "a2", null )
             .append ( "a3", "v3" )
-            .build();
+            .toImmutable ();
         rootNode.setStringAttributes ( attributes );
         result = PdmlNodeWriterUtil.writeToString ( rootNode, false, config );
         assertEquals ( """

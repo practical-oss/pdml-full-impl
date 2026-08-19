@@ -5,7 +5,6 @@ import dev.ps.pdml.data.node.Node;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.data.node.leaf.CommentLeaf;
 import dev.ps.pdml.data.node.leaf.TextLeaf;
-import dev.ps.pdml.data.util.TestDoc;
 import dev.ps.pdml.parser.util.ParseASTUtil;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +15,7 @@ class PdmlParserUtilTest {
     @Test
     void parseTestDoc() {
 
-        String pdmlTestDoc = TestDoc.getPdmlTestDoc();
+        String pdmlTestDoc = dev.ps.pdml.data.util.DemoDocs.pdmlExtensionsDemoDoc ();
         // assertDoesNotThrow ( () -> PdmlParserUtil.parseString ( pdmlTestDoc ) );
     }
 
@@ -66,19 +65,21 @@ class PdmlParserUtilTest {
     }
 
     @Test
-    void testSinglelineCommet() throws Exception {
+    void testSinglelineComment() throws Exception {
 
         TaggedNode rootNode = ParseASTUtil.parseString ( """
             [root text ^// comment
             ]""" );
-        assertEquals ( 1, rootNode.getChildNodes().size() );
-        assertEquals ( "text ", rootNode.toText() );
+        assertEquals ( 2, rootNode.getChildNodes().size() );
+        assertEquals ( "text \n", rootNode.concatenateTreeTexts() );
 
+        /*
         rootNode = ParseASTUtil.parseString ( """
             [root text ^/ comment
             ]""" );
         assertEquals ( 1, rootNode.getChildNodes().size() );
         assertEquals ( "text \n", rootNode.toText() );
+         */
 
         rootNode = ParseASTUtil.parseString ( """
             [root
@@ -86,29 +87,28 @@ class PdmlParserUtilTest {
                 ^// comment
                 after
             ]""" );
-        assertEquals ( 1, rootNode.getChildNodes().size() );
-        assertEquals ( "    before\n        after\n", rootNode.toText() );
+        assertEquals ( 2, rootNode.getChildNodes().size() );
+        assertEquals ( "    before\n    \n    after\n", rootNode.concatenateTreeTexts() );
     }
 
 
     @Test
-    void testMultilineComment() throws Exception {
+    void testBlockComment() throws Exception {
 
         TaggedNode rootNode = ParseASTUtil.parseString ( """
             [root text before ^/* comment */ text after]""" );
 
-        assertEquals ( 1, rootNode.getChildNodes().size() );
-        TextLeaf textLeaf = (TextLeaf) rootNode.childAt ( 0 );
-        assertEquals ( "text before  text after", textLeaf.getText() );
+        assertEquals ( 2, rootNode.getChildNodes().size() );
+        assertEquals ( "text before  text after", rootNode.concatenateTreeTexts() );
 
         rootNode = ParseASTUtil.parseString ( """
             [root text before ^/* included comment */ text after]""",
-            new PdmlParserConfigBuilder ().ignoreComments ( false ).build() );
+            new PdmlParserConfigBuilder().ignoreComments ( false ).build() );
         assertEquals ( 3, rootNode.getChildNodes().size() );
-        textLeaf = (TextLeaf) rootNode.childAt ( 0 );
+        TextLeaf textLeaf = (TextLeaf) rootNode.childAt ( 0 );
         assertEquals ( "text before ", textLeaf.getText() );
         CommentLeaf commentLeaf = (CommentLeaf) rootNode.childAt ( 1 );
-        assertEquals ( "^/* included comment */", commentLeaf.getText() );
+        assertEquals ( "/* included comment */", commentLeaf.getText() );
         assertEquals ( " included comment ", commentLeaf.textWithoutDelimiters() );
         textLeaf = (TextLeaf) rootNode.childAt ( 2 );
         assertEquals ( " text after", textLeaf.getText() );
@@ -124,9 +124,8 @@ class PdmlParserUtilTest {
         //     ^/* comment
         //             ^/* nested comment */
         //         */""", commentLeaf.getText() );
-        assertEquals ( 1, rootNode.getChildNodes().size() );
-        textLeaf = (TextLeaf) rootNode.childAt ( 0 );
-        assertEquals ( "text beforetext after", textLeaf.getText() );
+        assertEquals ( 2, rootNode.getChildNodes().size() );
+        assertEquals ( "text beforetext after", rootNode.concatenateTreeTexts() );
 
         rootNode = ParseASTUtil.parseString (
             "[root ^/** comment including */ **/]" );
@@ -140,9 +139,8 @@ class PdmlParserUtilTest {
 
         rootNode = ParseASTUtil.parseString ( """
             [root a^/* comment */^/* */b]""" );
-        assertEquals ( 1, rootNode.getChildNodes().size() );
-        textLeaf = (TextLeaf) rootNode.childAt ( 0 );
-        assertEquals ( "ab", textLeaf.getText() );
+        assertEquals ( 2, rootNode.getChildNodes().size() );
+        assertEquals ( "ab", rootNode.concatenateTreeTexts() );
 
         assertThrows ( PdmlException.class, () ->
             ParseASTUtil.parseString ( """
@@ -180,24 +178,24 @@ class PdmlParserUtilTest {
 
                 ^[const a=a]
                 ^[const b=b]
-                ^[const ab=^[ins_const a]^[ins_const b]]
-                ^[const abc=^[ins_const ab]c]
+                ^[const ab=^[ins-const a]^[ins-const b]]
+                ^[const abc=^[ins-const ab]c]
 
-                [n1 ^[ins_const abc]]
-                [n_^[ins_const abc] text ^[ins_const abc] text]
+                [n1 ^[ins-const abc]]
+                [n_^[ins-const abc] text ^[ins-const abc] text]
             ]""";
         TaggedNode rootNode = ParseASTUtil.parseString ( code );
         assertEquals ( "abc", rootNode.child ( "n1" ).toText() );
-        assertEquals ( "text abc text", rootNode.child ( "n_abc" ).toText() );
+        assertEquals ( "text abc text", rootNode.child ( "n_abc" ).concatenateTreeTexts() );
     }
 
     @Test
     void testScripting() throws Exception {
 
-        String code = "[tag\\[^[ins_exp 1+1]\\] text\\\\^[ins_exp 2+3] end]";
+        String code = "[tag\\[^[ins-exp 1+1]\\] text\\\\^[ins-exp 2+3] end]";
         TaggedNode rootNode = ParseASTUtil.parseString ( code );
         assertEquals ( "tag[2]", rootNode.getTag ().qualifiedTag () );
-        assertEquals ( "text\\5 end", rootNode.toText() );
+        assertEquals ( "text\\5 end", rootNode.concatenateTreeTexts() );
     }
 
     @Test
@@ -207,7 +205,7 @@ class PdmlParserUtilTest {
         assertEquals ( "[[]]", rootNode.toText() );
 
         rootNode = ParseASTUtil.parseString ( "[root before ^~|[[]]|~ after]" );
-        assertEquals ( "before [[]] after", rootNode.toText() );
+        assertEquals ( "before [[]] after", rootNode.concatenateTreeTexts() );
 
         rootNode = ParseASTUtil.parseString ( """
             [root ^""\"

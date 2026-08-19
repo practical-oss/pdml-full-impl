@@ -69,7 +69,7 @@ public class WriteStandalone_ParserEventHandler implements PdmlTreeWalkerEventHa
 
     @Override
     public void onComment ( @NotNull CommentEvent event, @NotNull NodeTag parentNode ) throws IOException {
-        basicWriter.writeMultilineComment ( event.comment() );
+        basicWriter.writeBlockComment ( event.comment() );
     }
 
     // public @NotNull NodeName getResult() { return rootNodeName; }

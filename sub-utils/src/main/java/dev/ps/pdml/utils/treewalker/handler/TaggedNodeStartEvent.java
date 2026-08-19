@@ -1,6 +1,6 @@
 package dev.ps.pdml.utils.treewalker.handler;
 
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextPosition;
 import dev.ps.pdml.data.node.NodeTag;
 import dev.ps.pdml.data.namespace.NodeNamespaces;
 import dev.ps.pdml.data.nodespec.PdmlNodeSpec;

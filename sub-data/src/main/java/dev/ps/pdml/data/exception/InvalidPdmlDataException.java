@@ -5,14 +5,14 @@ import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.inspection.InvalidDataException;
 import dev.ps.shared.text.inspection.InvalidTextException;
 import dev.ps.shared.text.inspection.message.TextInspectionError;
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 
 public class InvalidPdmlDataException extends PdmlException {
 
     public InvalidPdmlDataException (
         @NotNull String message,
         @Nullable String id,
-        @Nullable TextRange textLocation,
+        @Nullable TextLocation textLocation,
         @Nullable Throwable cause ) {
 
         super ( message, id, textLocation, cause );
@@ -21,7 +21,7 @@ public class InvalidPdmlDataException extends PdmlException {
     public InvalidPdmlDataException (
         @NotNull String message,
         @Nullable String id,
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         super ( message, id, textLocation );
     }

@@ -1,6 +1,6 @@
 package dev.ps.pdml.utils.treewalker;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
 import dev.ps.pdml.data.CorePdmlConstants;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
@@ -101,7 +101,7 @@ public class PdmlCodeWalker<N, R> {
         boolean isEmptyNode = taggedNode.isEmpty() &&
             reader.isAtChar ( CorePdmlConstants.NODE_END_CHAR );
 
-        TextRange location = taggedNode.getTextLocation ();
+        TextLocation location = taggedNode.getTextLocation ();
         TaggedNodeStartEvent startEvent = new TaggedNodeStartEvent (
             location != null ? location.startPosition () : null,
             taggedNode.getTag (),
@@ -127,7 +127,7 @@ public class PdmlCodeWalker<N, R> {
 
         parser.requireTaggedNodeEnd ( taggedNode );
 
-        TextRange por = taggedNode.getTextLocation ();
+        TextLocation por = taggedNode.getTextLocation ();
         TaggedNodeEndEvent event = new TaggedNodeEndEvent (
             por != null ? por.startPosition () : null,
             startEvent );

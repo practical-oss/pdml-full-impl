@@ -122,7 +122,7 @@ public class TypeInstanceNodesUtil {
         Map<String,N> map = new HashMap<>();
         TypeInstanceNodeStreamUtil.forEachTypeInstanceNode (typeInstanceNode -> {
             String key = typeInstanceNode.tag().qualifiedTag();
-            StreamHelper.checkUniqueKey ( map, key, typeInstanceNode.tag().tagPositionOrRange() );
+            StreamHelper.checkUniqueKey ( map, key, typeInstanceNode.tag().tagLocation () );
             map.put ( key, typeInstanceNode.typeInstance().nativeObject() );
         }, pdmlParser, pdmlDecoder, type, allowNullValues );
         return map.isEmpty() ? null : map;
@@ -167,12 +167,12 @@ public class TypeInstanceNodesUtil {
                 throw new InvalidPdmlDataException (
                     "Namespaces are invalid in map keys,",
                     "INVALID_MAP_KEY",
-                    nodeTag.namespacePrefixPositionOrRange() );
+                    nodeTag.namespacePrefixLocation() );
             }
              */
 
             ScalarInstance<K> key = keyType.genericObjectToInstance (
-                nodeTag.qualifiedTag(), nodeTag.tagPositionOrRange() );
+                nodeTag.qualifiedTag(), nodeTag.tagLocation () );
 
             AnyInstance<V> value = typeInstanceNode.typeInstance();
 

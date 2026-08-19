@@ -1,8 +1,9 @@
 package dev.ps.pdml.parser;
 
+import dev.ps.pdml.cmdnode.MutableCommandNodes;
 import dev.ps.pdml.core.parser.CorePdmlParserConfig;
 import dev.ps.pdml.data.nodespec.PdmlNodeSpecs;
-import dev.ps.pdml.ext.types.PdmlTypes;
+import dev.ps.pdml.cmdnode.types.PdmlTypes;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 
@@ -10,11 +11,15 @@ public class PdmlParserConfig extends CorePdmlParserConfig {
 
 
     public static boolean DEFAULT_IGNORE_TEXT_AFTER_ROOT_NODE_END = CorePdmlParserConfig.DEFAULT_IGNORE_TEXT_AFTER_ROOT_NODE_END;
+    public static final @NotNull MutableCommandNodes DEFAULT_COMMAND_NODES = MutableCommandNodes.STANDARD_COMMAND_NODES;
     public static final @Nullable PdmlNodeSpecs DEFAULT_NODE_SPECS = null;
     public static final @Nullable PdmlTypes DEFAULT_TYPES = null;
     public static final boolean DEFAULT_ALLOW_ATTRIBUTES_WITHOUT_CARET = false;
     public static final boolean DEFAULT_IGNORE_COMMENTS = true;
 
+
+    private final @NotNull MutableCommandNodes commandNodes;
+    public @NotNull MutableCommandNodes commandNodes() { return commandNodes; }
 
     private final @Nullable PdmlNodeSpecs nodeSpecs;
     public @Nullable PdmlNodeSpecs getNodeSpecs() { return nodeSpecs; }
@@ -31,6 +36,7 @@ public class PdmlParserConfig extends CorePdmlParserConfig {
 
     public PdmlParserConfig (
         boolean ignoreTextAfterRootNodeEnd,
+        @NotNull MutableCommandNodes commandNodes,
         @Nullable PdmlNodeSpecs nodeSpecs,
         @Nullable PdmlTypes types,
         boolean ignoreComments,
@@ -38,6 +44,7 @@ public class PdmlParserConfig extends CorePdmlParserConfig {
 
         super ( ignoreTextAfterRootNodeEnd );
 
+        this.commandNodes = commandNodes;
         this.nodeSpecs = nodeSpecs;
         this.types = types;
         this.ignoreComments = ignoreComments;
@@ -48,6 +55,7 @@ public class PdmlParserConfig extends CorePdmlParserConfig {
 
         return new PdmlParserConfig (
             DEFAULT_IGNORE_TEXT_AFTER_ROOT_NODE_END,
+            DEFAULT_COMMAND_NODES,
             DEFAULT_NODE_SPECS,
             DEFAULT_TYPES,
             DEFAULT_IGNORE_COMMENTS,

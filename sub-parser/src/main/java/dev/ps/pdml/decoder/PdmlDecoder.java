@@ -5,7 +5,7 @@ import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.basics.utilities.namedobject.DuplicateKeyPolicy;
 import dev.ps.shared.text.inspection.InvalidDataException;
 import dev.ps.shared.text.inspection.InvalidTextException;
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextPosition;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
 import dev.ps.shared.text.reader.util.NullableParsedString;
 import dev.ps.shared.text.reader.util.ParsedString;
@@ -81,16 +81,28 @@ public class PdmlDecoder implements Decoder {
     public @NotNull ParsedString<?> decodeScalar()
         throws IOException, InvalidTextException {
 
+/*
         TextPosition position = reader.currentTextPosition();
         String string = parser.parseTextLeafAsStringAndIgnoreComments ();
         if ( string != null ) {
             return new ParsedString<> ( string, position );
         } else {
             throw new InvalidTextException (
-                "Expecting a string value.",
-                "EXPECTING_STRING_VALUE",
+                "A value is required.",
+                "VALUE_REQUIRED",
                 position );
         }
+ */
+
+        @Nullable ParsedString<?> parsedString = parser.parseWithTextRange ( PdmlParser::parseTextLeafAsStringAndIgnoreComments );
+        if ( parsedString == null ) {
+            throw new InvalidTextException (
+                "A value is required.",
+                "VALUE_REQUIRED",
+                reader.currentTextPosition() );
+        }
+
+        return parsedString;
     }
 
 

@@ -18,7 +18,7 @@ class CorePdmlWriterTest {
 
             writer
                 .writeNodeStartChar()
-                .writeNodeName ( "foo" )
+                .writeTag ( "foo" )
                 .writeSpaceSeparator()
                 .writeText ( "1[2]3\\4" )
                 .writeNodeEndChar();

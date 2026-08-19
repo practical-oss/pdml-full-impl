@@ -1,5 +1,6 @@
 package dev.ps.pdml.parser;
 
+import dev.ps.pdml.data.util.DemoDocs;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.ioresource.reader.StringReaderResource;
 import dev.ps.pdml.data.exception.PdmlException;
@@ -8,19 +9,52 @@ import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.data.node.leaf.TextLeaf;
 import dev.ps.shared.basics.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
-import java.io.StringReader;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class PdmlParserTest {
 
     @Test
-    void requireRootNode() throws IOException, PdmlException {
+    void parseCorePdmlDocument() throws IOException {
 
-        PdmlParser parser = createParser ( "\r\n\t [root]\n" );
-        TaggedNode rootNode = parser.requireDocument ();
+        String pdmlDoc = DemoDocs.corePdmlDemoDoc();
+        PdmlParser parser = createParser ( pdmlDoc );
+        assertDoesNotThrow ( parser::requireDocument );
+    }
+
+    @Test
+    void parseDocumentWithExtensions() throws IOException {
+
+        String pdmlDoc = DemoDocs.pdmlExtensionsDemoDoc();
+        PdmlParser parser = createParser ( pdmlDoc );
+        assertDoesNotThrow ( parser::requireDocument );
+    }
+
+    @ParameterizedTest
+    @CsvSource ( {
+        "root]",
+        "[root",
+        "[]",
+        "[[root]",
+        "[root]]",
+        // "[a:b]",
+        // "[a|b]",
+        "[a\1b]" } )
+    void parseInvalidPdmlDocument ( String pdmlDoc ) throws IOException {
+
+        PdmlParser parser = createParser ( pdmlDoc );
+        assertThrows ( PdmlException.class, parser::requireDocument );
+    }
+
+    @Test
+    void requireDocument() throws IOException, PdmlException {
+
+        PdmlParser parser = createParser ( "[root]" );
+        TaggedNode rootNode = parser.requireDocument();
         assertEquals ( "root", rootNode.getTag ().qualifiedTag () );
         assertTrue ( rootNode.isEmpty () );
 
@@ -36,6 +70,62 @@ class PdmlParserTest {
 
         TextLeaf textLeaf = (TextLeaf) childNode.getChildNodes().get ( 0 );
         assertEquals ( "foo bar", textLeaf.getText() );
+    }
+
+    @Test
+    void documentStart() throws IOException, PdmlException {
+
+        // Whitespace before doc start is allowed
+        PdmlParser parser = createParser ( "\r\n\n\t [root]\n" );
+        TaggedNode rootNode = parser.requireDocument();
+        assertEquals ( "root", rootNode.getTag ().qualifiedTag () );
+        assertTrue ( rootNode.isEmpty () );
+
+        // Comments before doc start is allowed
+        parser = createParser ( """
+            ^// comment
+
+            ^/*
+                comment
+            */
+            [root]""" );
+        rootNode = parser.requireDocument();
+        assertEquals ( "root", rootNode.getTag().qualifiedTag() );
+        assertTrue ( rootNode.isEmpty () );
+
+        // Extensions before root node are allowed
+        parser = createParser ( "^[const [c \\[root\\]]]^[ins-const c]" );
+        rootNode = parser.requireDocument();
+        assertEquals ( "root", rootNode.getTag().qualifiedTag() );
+        assertTrue ( rootNode.isEmpty () );
+
+        // Invalid
+        parser = createParser ( "^[const [c \\[root\\]]]" );
+        assertThrows ( PdmlException.class, parser::requireDocument );
+    }
+
+
+    @Test
+    void documentEnd() throws IOException, PdmlException {
+
+        // Whitespace after doc end is allowed
+        PdmlParser parser = createParser ( "[root]\r\n\n\t " );
+        TaggedNode rootNode = parser.requireDocument();
+        assertEquals ( "root", rootNode.getTag ().qualifiedTag () );
+        assertTrue ( rootNode.isEmpty () );
+
+        // Comments after doc end are allowed
+        parser = createParser ( """
+            [root]
+            ^// comment
+
+            ^/*
+                comment
+            */
+            """ );
+        rootNode = parser.requireDocument();
+        assertEquals ( "root", rootNode.getTag().qualifiedTag() );
+        assertTrue ( rootNode.isEmpty () );
     }
 
     @Test
@@ -107,7 +197,7 @@ class PdmlParserTest {
         checkStringLiteral ( "\"\"\"e\n" + escapes + "\n\"\"\"",expected );
 
         // Extensions
-        String getSet = "start^[const c1=CCC]^[ins_const c1]end";
+        String getSet = "start^[const c1=CCC]^[ins-const c1]end";
         expected = "startCCCend";
         checkStringLiteral ( getSet, expected );
         checkStringLiteral ( "\"" + getSet + "\"", expected );
@@ -119,7 +209,8 @@ class PdmlParserTest {
     private void checkStringLiteral ( String pdmlCode, String expected ) throws IOException, PdmlException {
 
         PdmlParser parser = createParser ( pdmlCode );
-        @Nullable String string = parser.parseTextLeafAsStringLiteral ();
+        // @Nullable String string = parser.parseTextLeafAsStringLiteral ();
+        @Nullable String string = parser.parseStringLiteralOrNullInTextLeaf();
         if ( expected != null ) {
             assertEquals ( expected, string );
         } else {
@@ -129,7 +220,6 @@ class PdmlParserTest {
 
 
     private @NotNull PdmlParser createParser ( @NotNull String code ) throws IOException {
-        StringReader stringReader = new StringReader ( code );
-        return PdmlParser.create ( stringReader, new StringReaderResource ( code ), PdmlParserConfig.defaultConfig() );
+        return PdmlParser.create ( new StringReaderResource ( code ), PdmlParserConfig.defaultConfig() );
     }
 }

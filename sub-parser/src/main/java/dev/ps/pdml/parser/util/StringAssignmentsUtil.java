@@ -7,7 +7,7 @@ import dev.ps.shared.text.ioresource.reader.ReaderResource;
 import dev.ps.pdml.parser.PdmlParser;
 import dev.ps.pdml.parser.PdmlParserConfig;
 import dev.ps.prt.argument.StringArguments;
-import dev.ps.prt.argument.StringArgumentsBuilder;
+import dev.ps.prt.argument.MutableStringArguments;
 import dev.ps.prt.type.scalar.ScalarType;
 
 import java.io.IOException;
@@ -20,9 +20,9 @@ public class StringAssignmentsUtil {
         @NotNull PdmlParser pdmlParser,
         boolean allowNullValues ) throws IOException, InvalidDataException {
 
-        StringArgumentsBuilder builder = new StringArgumentsBuilder();
+        MutableStringArguments builder = new MutableStringArguments ();
         StringAssignmentStreamUtil.forEachStringArgument ( builder::append, pdmlParser, allowNullValues );
-        return builder.buildOrNull();
+        return builder.toImmutableOrNull ();
     }
 
     public static @Nullable StringArguments parseAsStringArguments (

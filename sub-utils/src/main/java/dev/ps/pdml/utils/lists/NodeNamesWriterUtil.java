@@ -6,33 +6,33 @@ import dev.ps.pdml.parser.PdmlParserConfig;
 import dev.ps.pdml.parser.util.ParseASTUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
-import dev.ps.shared.text.ioresource.writer.TextResourceWriter;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
+import dev.ps.shared.text.ioresource.writer.WriterResource;
 
 import java.io.IOException;
 
 public class NodeNamesWriterUtil {
 
     public static void writeNames (
-        @NotNull TextResourceReader pdmlCodeReader,
+        @NotNull ReaderResource pdmlReaderResource,
         @NotNull PdmlParserConfig parserConfig,
-        @NotNull TextResourceWriter writer,
+        @NotNull WriterResource textWriterResource,
         @Nullable String separator,
         boolean sort,
         boolean distinct ) throws IOException, PdmlException {
 
-        @NotNull TaggedNode rootNode = ParseASTUtil.parseReader (
-            pdmlCodeReader, parserConfig );
-        writeNames ( rootNode, writer, separator, sort, distinct );
+        @NotNull TaggedNode rootNode = ParseASTUtil.parseReaderResource (
+            pdmlReaderResource, parserConfig );
+        writeNames ( rootNode, textWriterResource, separator, sort, distinct );
     }
 
     public static void writeNames (
         @NotNull TaggedNode rootNode,
-        @NotNull TextResourceWriter writer,
+        @NotNull WriterResource writerResource,
         @Nullable String separator,
         boolean sort,
         boolean distinct ) throws IOException {
 
-        TextLeavesWriterUtil.writeTextsOrNames ( true, rootNode, writer, separator, sort, distinct );
+        TextLeavesWriterUtil.writeTextsOrNames ( true, rootNode, writerResource, separator, sort, distinct );
     }
 }

@@ -9,7 +9,7 @@ import dev.ps.prt.type.collection.map.MapInstance;
 import dev.ps.prt.type.collection.map.impl.NativeMapType;
 import dev.ps.prt.type.record.RecordInstance;
 import dev.ps.prt.parameter.Parameters;
-import dev.ps.prt.parameter.ParametersBuilder;
+import dev.ps.prt.parameter.MutableParameters;
 import dev.ps.prt.type.CommonTypes;
 import dev.ps.prt.type.record.impl.GenericRecordInstance;
 import dev.ps.prt.type.record.impl.GenericRecordType;
@@ -93,13 +93,13 @@ class PdmlDecoderTest {
     @Test
     void decodeGenericRecord() throws IOException, InvalidDataException {
 
-        Parameters typeFields = new ParametersBuilder()
+        Parameters typeFields = new MutableParameters ()
             .string ( "name", null, null )
             // .appendInteger ( "age" )
             .append ( "age", CommonTypes.INT32 )
             .string ( "occupation", "unknown", null )
             .stringOrNull ( "remark", null, null )
-            .build();
+            .toImmutable ();
         GenericRecordType type = new GenericRecordType ("person", typeFields, null );
 
 /*

@@ -1,9 +1,9 @@
 package dev.ps.pdml.writer;
 
+import dev.ps.pdml.core.util.EscapeUtil;
 import dev.ps.pdml.core.writer.CorePdmlWriter;
 import dev.ps.pdml.core.writer.PdmlWriterConfig;
 import dev.ps.pdml.data.PdmlExtensionsConstants;
-import dev.ps.pdml.core.util.PdmlWriterUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 
@@ -42,21 +42,21 @@ public class PdmlWriter extends CorePdmlWriter {
     }
 
     @Override
-    public PdmlWriter writeNodeName ( @NotNull String nodeName ) throws IOException {
-        super.writeNodeName ( nodeName );
+    public PdmlWriter writeTag ( @NotNull String unescapedTag ) throws IOException {
+        super.writeTag ( unescapedTag );
         return this;
     }
 
-    public PdmlWriter writeNodeName (
+    public PdmlWriter writeNSAndTag (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName ) throws IOException {
+        @NotNull String unescapedTag ) throws IOException {
 
         if ( nameSpacePrefix != null && ! nameSpacePrefix.isEmpty() ) {
-            writeName ( nameSpacePrefix );
+            writeTag ( nameSpacePrefix );
             write ( PdmlExtensionsConstants.NAMESPACE_SEPARATOR_CHAR );
         }
 
-        writeName ( localName );
+        writeTag ( unescapedTag );
         return this;
     }
 
@@ -67,8 +67,8 @@ public class PdmlWriter extends CorePdmlWriter {
     }
 
     @Override
-    public PdmlWriter writeText ( @NotNull String text ) throws IOException {
-        super.writeText ( text );
+    public PdmlWriter writeText ( @NotNull String unescapedText ) throws IOException {
+        super.writeText ( unescapedText );
         return this;
     }
 
@@ -76,35 +76,35 @@ public class PdmlWriter extends CorePdmlWriter {
     // Convenience Methods
 
     @Override
-    public PdmlWriter writeNodeNameAndSpaceSeparator ( @NotNull String nodeName ) throws IOException {
-        super.writeNodeNameAndSpaceSeparator ( nodeName );
+    public PdmlWriter writeTagAndSpaceSeparator ( @NotNull String unescapedTag ) throws IOException {
+        super.writeTagAndSpaceSeparator ( unescapedTag );
         return this;
     }
 
-    public PdmlWriter writeNodeNameAndSpaceSeparator (
+    public PdmlWriter writeTagAndSpaceSeparator (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName ) throws IOException {
+        @NotNull String unescapedTag ) throws IOException {
 
-        writeNodeName ( nameSpacePrefix, localName );
+        writeNSAndTag ( nameSpacePrefix, unescapedTag );
         return writeSpaceSeparator();
     }
 
     @Override
     public PdmlWriter writeNodeStart (
-        @NotNull String nodeName,
+        @NotNull String unescapedTag,
         boolean appendSpaceSeparator ) throws IOException {
 
-        super.writeNodeStart ( nodeName, appendSpaceSeparator );
+        super.writeNodeStart ( unescapedTag, appendSpaceSeparator );
         return this;
     }
 
     public PdmlWriter writeNodeStart (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName,
+        @NotNull String unescapedTag,
         boolean appendSpaceSeparator ) throws IOException {
 
         writeNodeStartChar();
-        writeNodeName ( nameSpacePrefix, localName );
+        writeNSAndTag ( nameSpacePrefix, unescapedTag );
         if ( appendSpaceSeparator ) {
             writeSpaceSeparator();
         }
@@ -112,17 +112,17 @@ public class PdmlWriter extends CorePdmlWriter {
     }
 
     @Override
-    public PdmlWriter writeEmptyNode ( @NotNull String nodeName ) throws IOException {
-        super.writeEmptyNode ( nodeName );
+    public PdmlWriter writeEmptyNode ( @NotNull String unescapedTag ) throws IOException {
+        super.writeEmptyNode ( unescapedTag );
         return this;
     }
 
     public PdmlWriter writeEmptyNode (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName ) throws IOException {
+        @NotNull String unescapedTag ) throws IOException {
 
         writeNodeStartChar();
-        writeNodeName ( nameSpacePrefix, localName );
+        writeNSAndTag ( nameSpacePrefix, unescapedTag );
         return writeNodeEndChar ();
     }
 
@@ -140,60 +140,60 @@ public class PdmlWriter extends CorePdmlWriter {
 
     @Override
     public PdmlWriter writeTextNode (
-        @NotNull String nodeName,
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @NotNull String unescapedText ) throws IOException {
 
-        super.writeTextNode ( nodeName, text );
+        super.writeTextNode ( unescapedTag, unescapedText );
         return this;
     }
 
     public PdmlWriter writeTextNode (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName,
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @NotNull String unescapedText ) throws IOException {
 
-        writeNodeStart ( nameSpacePrefix, localName, true );
-        writeText ( text );
+        writeNodeStart ( nameSpacePrefix, unescapedTag, true );
+        writeText ( unescapedText );
         return writeNodeEndChar();
     }
 
     @Override
     public PdmlWriter writeTextNodeOrEmptyNode (
-        @NotNull String nodeName,
-        @Nullable String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @Nullable String unescapedText ) throws IOException {
 
-        super.writeTextNodeOrEmptyNode ( nodeName, text );
+        super.writeTextNodeOrEmptyNode ( unescapedTag, unescapedText );
         return this;
     }
 
     public PdmlWriter writeTextNodeOrEmptyNode (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName,
-        @Nullable String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @Nullable String unescapedText ) throws IOException {
 
-        if ( isNonEmptyText ( text ) ) {
-            return writeTextNode ( nameSpacePrefix, localName, text );
+        if ( isNonEmptyText ( unescapedText ) ) {
+            return writeTextNode ( nameSpacePrefix, unescapedTag, unescapedText );
         } else {
-            return writeEmptyNode ( nameSpacePrefix, localName );
+            return writeEmptyNode ( nameSpacePrefix, unescapedTag );
         }
     }
 
     @Override
     public PdmlWriter writeTextNodeIfTextNotEmpty (
-        @NotNull String nodeName,
-        @Nullable String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @Nullable String unescapedText ) throws IOException {
 
-        super.writeTextNodeIfTextNotEmpty ( nodeName, text );
+        super.writeTextNodeIfTextNotEmpty ( unescapedTag, unescapedText );
         return this;
     }
 
     public PdmlWriter writeTextNodeIfTextNotEmpty (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName,
-        @Nullable String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @Nullable String unescapedText ) throws IOException {
 
-        if ( isNonEmptyText ( text ) ) {
-            writeTextNode ( nameSpacePrefix, localName, text );
+        if ( isNonEmptyText ( unescapedText ) ) {
+            writeTextNode ( nameSpacePrefix, unescapedTag, unescapedText );
         }
         return this;
     }
@@ -229,19 +229,19 @@ public class PdmlWriter extends CorePdmlWriter {
     // Line Mode
 
     @Override
-    public PdmlWriter writeNodeStartLine ( @NotNull String nodeName, boolean increaseIndent ) throws IOException {
-        super.writeNodeStartLine ( nodeName, increaseIndent );
+    public PdmlWriter writeNodeStartLine ( @NotNull String unescapedTag, boolean increaseIndent ) throws IOException {
+        super.writeNodeStartLine ( unescapedTag, increaseIndent );
         return this;
     }
 
     public PdmlWriter writeNodeStartLine (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName,
+        @NotNull String unescapedTag,
         boolean increaseIndent ) throws IOException {
 
         writeIndent();
         writeNodeStartChar();
-        writeNodeName ( nameSpacePrefix, localName );
+        writeNSAndTag ( nameSpacePrefix, unescapedTag );
         writeLineBreak();
         if ( increaseIndent ) increaseIndent();
         return this;
@@ -254,42 +254,42 @@ public class PdmlWriter extends CorePdmlWriter {
     }
 
     @Override
-    public PdmlWriter writeEmptyNodeLine ( @NotNull String nodeName ) throws IOException {
-        super.writeEmptyNodeLine ( nodeName );
+    public PdmlWriter writeEmptyNodeLine ( @NotNull String unescapedTag ) throws IOException {
+        super.writeEmptyNodeLine ( unescapedTag );
         return this;
     }
 
     public PdmlWriter writeEmptyNodeLine (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName ) throws IOException {
+        @NotNull String unescapedTag ) throws IOException {
 
         writeIndent();
-        writeEmptyNode ( nameSpacePrefix, localName );
+        writeEmptyNode ( nameSpacePrefix, unescapedTag );
         return writeLineBreak();
     }
 
     @Override
-    public PdmlWriter writeTextLine ( @NotNull String text ) throws IOException {
-        super.writeTextLine ( text );
+    public PdmlWriter writeTextLine ( @NotNull String unescapedText ) throws IOException {
+        super.writeTextLine ( unescapedText );
         return this;
     }
 
     @Override
     public PdmlWriter writeTextNodeLine (
-        @NotNull String nodeName,
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @NotNull String unescapedText ) throws IOException {
 
-        super.writeTextNodeLine ( nodeName, text );
+        super.writeTextNodeLine ( unescapedTag, unescapedText );
         return this;
     }
 
     public PdmlWriter writeTextNodeLine (
         @Nullable String nameSpacePrefix,
-        @NotNull String localName,
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @NotNull String unescapedText ) throws IOException {
 
         writeIndent();
-        writeTextNode ( nameSpacePrefix, localName, text );
+        writeTextNode ( nameSpacePrefix, unescapedTag, unescapedText );
         return writeLineBreak();
     }
 
@@ -323,7 +323,7 @@ public class PdmlWriter extends CorePdmlWriter {
     }
 
     public PdmlWriter writeAttributeName ( @NotNull String attributeName ) throws IOException {
-        writeName ( attributeName );
+        writeTag ( attributeName );
         return this;
     }
 
@@ -345,11 +345,11 @@ public class PdmlWriter extends CorePdmlWriter {
     }
 
     public PdmlWriter writeDoubleQuotedAttributeValue ( @Nullable String value ) throws IOException {
-        return writeNullableDoubleQuotedStringLiteral ( value );
+        return writeDoubleQuotedStringLiteral ( value );
     }
 
     public PdmlWriter writeUnquotedAttributeValue ( @NotNull String value ) throws IOException {
-        return writeUnquotedStringLiteral ( value );
+        return writeBareStringLiteral ( value );
     }
 
     public PdmlWriter writeAttribute (
@@ -385,7 +385,7 @@ public class PdmlWriter extends CorePdmlWriter {
 
     public PdmlWriter writeNamespacesEnd ( boolean appendSpace ) throws IOException {
 
-        write ( PdmlExtensionsConstants.NAMESPACE_DECLARATIONS_END );
+        write ( PdmlExtensionsConstants.NAMESPACE_DECLARATIONS_END_CHAR );
         if ( appendSpace ) writeSpaceSeparator();
         return this;
     }
@@ -406,18 +406,18 @@ public class PdmlWriter extends CorePdmlWriter {
 
     // Comment
 
-    public PdmlWriter writeMultilineComment ( @NotNull String comment ) throws IOException {
+    public PdmlWriter writeBlockComment ( @NotNull String comment ) throws IOException {
 
         // TODO add starts (*) if comment contains */, e.g. ^** */ **/
-        write ( PdmlExtensionsConstants.MULTI_LINE_COMMENT_EXTENSION_START );
+        write ( PdmlExtensionsConstants.BLOCK_COMMENT_EXTENSION_START );
         writeRaw ( comment );
-        return write ( PdmlExtensionsConstants.MULTI_LINE_COMMENT_END );
+        return write ( PdmlExtensionsConstants.BLOCK_COMMENT_END );
     }
 
-    public PdmlWriter writeMultilineCommentLine ( @NotNull String comment ) throws IOException {
+    public PdmlWriter writeBlockCommentLine ( @NotNull String comment ) throws IOException {
 
         writeIndent();
-        writeMultilineComment ( comment );
+        writeBlockComment ( comment );
         return writeLineBreak();
     }
 
@@ -425,17 +425,20 @@ public class PdmlWriter extends CorePdmlWriter {
     // String Literal
 
     public PdmlWriter writeDoubleQuotedStringLiteral ( @Nullable CharSequence value ) throws IOException {
-        PdmlWriterUtil.writeDoubleQuotedStringLiteral ( value, writer );
+        EscapeUtil.writeQuotedStringLiteral ( value, writer );
         return this;
     }
 
+    /*
     public PdmlWriter writeNullableDoubleQuotedStringLiteral ( @Nullable CharSequence value ) throws IOException {
-        PdmlWriterUtil.writeNullableDoubleQuotedStringLiteral ( value, writer );
+        // PdmlWriterUtil.writeNullableDoubleQuotedStringLiteral ( value, writer );
+        EscapeUtil.writeAsQuotedStringLiteral ( value, writer );
         return this;
     }
+     */
 
-    public PdmlWriter writeUnquotedStringLiteral ( @NotNull CharSequence value ) throws IOException {
-        PdmlWriterUtil.writeUnquotedStringLiteral ( value, writer );
+    public PdmlWriter writeBareStringLiteral ( @NotNull CharSequence value ) throws IOException {
+        EscapeUtil.writeBareStringLiteral ( value, writer );
         return this;
     }
 

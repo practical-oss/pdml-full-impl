@@ -1,0 +1,83 @@
+[Core_PDML_demo
+
+    This is a valid PDML document showing examples of storing different types of data using
+    only Core PDML — PDML extensions are not used.
+
+    You can find more examples (with explanations) in the article "Core PDML Examples",
+    available here: https://pdml-lang.dev/docs/core/examples/index.html
+
+    [string_value Some arbitrary string]
+    [integer_value 123]
+    [boolean_value true]
+    [date_value 2026-05-26]
+    [null_value]
+    [text
+        Some arbitrary text
+        Line 2
+        Line 3
+    ]
+
+    [string_list
+        [el string 1]
+        [el string 2]
+        [el string 3]
+    ]
+    Alternative:
+    [string_list
+        [_ string 1]
+        [_ string 2]
+        [_ string 3]
+    ]
+    [any_type_list
+        [el some string]
+        [el 123]
+        [el]
+        [el [leaf_child][text_child text]]
+    ]
+
+    [string_string_map
+        [key_1 value 1]
+        [key_2 value 2]
+        [key_3 value 3]
+    ]
+    [string_any_type_map
+        [string some string]
+        [null_entry]
+        [complex_entry [leaf_child][text_child text]]
+    ]
+
+    [record
+        [field_1 value_1]
+        [field_2 value_2]
+        [field_3]
+        [field_4
+            [child_41]
+            [child_42 some value]
+        ]
+    ]
+
+    [tree
+        [child_1]
+        [child_2
+            [child_21]
+            [child_22 [child_221][child_222]]
+        ]
+    ]
+    Same tree, using compact form:
+    [tree [child_1][child_2 [child_21][child_22 [child_221][child_222]]]]
+
+    [markup You can write text in [b bold], [i italic], or [b [i bold and italic]].]
+
+    Character escape sequences in text:
+    [note The following characters must be escaped: \\, \[, \], and \^]
+
+    Character escape sequences in tag:
+    [net\sweight\s\[kg\] 177]
+
+    You can use any case-convention in PDML documents, such as:
+    [kebab-case-example]
+    [snake_case_example]
+    [camelCaseExample]
+    [dot.case.example]
+    [path/case/example]
+]

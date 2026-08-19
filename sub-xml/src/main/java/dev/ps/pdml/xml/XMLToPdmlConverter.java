@@ -75,7 +75,7 @@ public class XMLToPdmlConverter {
             pdmlWriter.writeText ( ((Characters) XMLEvent).getData(), true );
 
         } else if ( XMLEvent instanceof Comment ) {
-            pdmlWriter.writeMultilineComment ( ((Comment)XMLEvent).getText() );
+            pdmlWriter.writeBlockComment ( ((Comment)XMLEvent).getText() );
 
         } else if ( XMLEvent.isStartDocument() ) {
             // pXMLWriter.startDocument();

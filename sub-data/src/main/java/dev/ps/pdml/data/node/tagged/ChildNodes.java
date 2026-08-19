@@ -1,6 +1,6 @@
 package dev.ps.pdml.data.node.tagged;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.exception.InvalidPdmlDataException;
 import dev.ps.pdml.data.node.Node;
 import dev.ps.pdml.data.node.leaf.TextLeaf;
@@ -36,7 +36,7 @@ public class ChildNodes implements Iterable<Node> {
 
     public boolean isNotEmpty() { return ! list.isEmpty(); }
 
-    public @Nullable TextRange startLocation() {
+    public @Nullable TextLocation startLocation() {
         return ! isEmpty() ? first().getTextLocation () : null;
     }
 

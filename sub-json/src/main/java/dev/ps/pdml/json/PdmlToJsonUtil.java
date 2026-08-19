@@ -8,78 +8,101 @@ import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.pdml.parser.PdmlParserConfig;
 import dev.ps.pdml.parser.util.ParseASTUtil;
 import dev.ps.shared.basics.annotations.NotNull;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
-import dev.ps.shared.text.ioresource.writer.TextResourceWriter;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
+import dev.ps.shared.text.ioresource.writer.WriterResource;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.io.Writer;
 
 public class PdmlToJsonUtil {
 
 
     // Basic Methods
 
-    public static @NotNull ObjectNode treeToTree ( @NotNull TaggedNode pdmlRootNode ) {
+    public static @NotNull ObjectNode pdmlToJsonTree ( @NotNull TaggedNode pdmlRootNode ) {
         return new PdmlTreeToJsonTreeConverter().convert ( pdmlRootNode );
     }
 
-    public static @NotNull ObjectNode readerToTree (
-        @NotNull TextResourceReader pdmlCodeReader,
+    public static @NotNull ObjectNode pdmlReaderResourceToJsonTree (
+        @NotNull ReaderResource pdmlReaderResource,
         @NotNull PdmlParserConfig parserConfig,
-        boolean removeWhitespaceNodes ) throws IOException, PdmlException,JsonProcessingException {
+        boolean removePrettyPrintingWhitespaceInTree ) throws IOException, PdmlException,JsonProcessingException {
 
-        @NotNull TaggedNode pdmlRootNode = ParseASTUtil.parseReader (
-            pdmlCodeReader, parserConfig );
+        @NotNull TaggedNode pdmlRootNode = ParseASTUtil.parseReaderResource (
+            pdmlReaderResource, parserConfig );
 
-        if ( removeWhitespaceNodes ) {
-            pdmlRootNode.removeWhitespaceTextLeafsInTree ( false );
+        if ( removePrettyPrintingWhitespaceInTree ) {
+            pdmlRootNode.removePrettyPrintingWhitespaceInTree();
         }
 
-        return treeToTree ( pdmlRootNode );
+        return pdmlToJsonTree ( pdmlRootNode );
     }
 
-    public static void treeToWriter (
+    /*
+    public static void pdmlTreeToJsonWriterResouce (
         @NotNull TaggedNode pdmlRootNode,
-        @NotNull TextResourceWriter jsonCodeWriter,
+        @NotNull WriterResource jsonWriterResource,
         boolean usePrettyPrinting ) throws IOException {
 
-        ObjectNode jsonObjectNode = treeToTree ( pdmlRootNode );
-        writeJsonTree ( jsonObjectNode, jsonCodeWriter, usePrettyPrinting );
+        try ( Writer jsonWriter = jsonWriterResource. newWriter() ) {
+            pdmlTreeToJsonWriter ( pdmlRootNode, jsonWriter, usePrettyPrinting );
+        }
+    }
+     */
+
+    public static void pdmlTreeToJsonWriter (
+        @NotNull TaggedNode pdmlRootNode,
+        @NotNull Writer jsonWriter,
+        boolean usePrettyPrinting ) throws IOException {
+
+        ObjectNode jsonObjectNode = pdmlToJsonTree ( pdmlRootNode );
+        writeJsonTree ( jsonObjectNode, jsonWriter, usePrettyPrinting );
     }
 
-    public static void readerToWriter (
-        @NotNull TextResourceReader pdmlCodeReader,
-        @NotNull TextResourceWriter jsonCodeWriter,
+    public static void pdmlToJsonResource (
+        @NotNull ReaderResource pdmlReaderResource,
+        @NotNull WriterResource jsonWriterResource,
         @NotNull PdmlParserConfig parserConfig,
-        boolean removeWhitespaceNodes,
-        boolean usePrettyPrinting ) throws IOException, PdmlException,JsonProcessingException {
+        boolean removePrettyPrintingWhitespaceInPdmlTree,
+        boolean usePrettyPrintingInJson ) throws IOException, PdmlException,JsonProcessingException {
 
-        @NotNull ObjectNode jsonObjectNode = readerToTree (
-            pdmlCodeReader, parserConfig, removeWhitespaceNodes );
-        writeJsonTree ( jsonObjectNode, jsonCodeWriter, usePrettyPrinting );
+        @NotNull ObjectNode jsonObjectNode = pdmlReaderResourceToJsonTree (
+            pdmlReaderResource, parserConfig, removePrettyPrintingWhitespaceInPdmlTree );
+        writeJsonTree ( jsonObjectNode, jsonWriterResource, usePrettyPrintingInJson );
     }
 
 
     // Convenience Methods
 
-    public static @NotNull String treeToCode (
+    public static @NotNull String pdmlTreeToJsonCode (
         @NotNull TaggedNode pdmlRootNode,
         boolean usePrettyPrinting ) throws JsonProcessingException {
 
-        try ( StringWriter stringWriter = new StringWriter();
-            TextResourceWriter jsonCodeWriter = new TextResourceWriter ( stringWriter, null ) ) {
-            treeToWriter ( pdmlRootNode, jsonCodeWriter, usePrettyPrinting );
-            return stringWriter.toString();
+        try ( StringWriter jsonWriter = new StringWriter() ) {
+            pdmlTreeToJsonWriter ( pdmlRootNode, jsonWriter, usePrettyPrinting );
+            return jsonWriter.toString();
         } catch ( IOException e ) {
             // should never happen
-            throw new RuntimeException ( e );
+            throw new UncheckedIOException ( e );
         }
     }
 
 
     private static void writeJsonTree (
         @NotNull ObjectNode jsonObjectNode,
-        @NotNull TextResourceWriter jsonCodeWriter,
+        @NotNull WriterResource jsonWriterResource,
+        boolean usePrettyPrinting ) throws IOException {
+
+        try ( Writer writer = jsonWriterResource.newWriter() ) {
+            writeJsonTree ( jsonObjectNode, writer, usePrettyPrinting );
+        }
+    }
+
+    private static void writeJsonTree (
+        @NotNull ObjectNode jsonObjectNode,
+        @NotNull Writer jsonWriter,
         boolean usePrettyPrinting ) throws IOException {
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -88,6 +111,12 @@ public class PdmlToJsonUtil {
             objectMapper.writerWithDefaultPrettyPrinter();
         }
 
-        objectMapper.writeValue ( jsonCodeWriter.getWriter(), jsonObjectNode );
+        // 'writeValue' may or may not close the writer. doc says:
+        // Note: method does not close the underlying stream explicitly here; however, JsonFactory this mapper uses may choose to close the stream depending on its settings (by default, it will try to close it when JsonGenerator we construct is closed).
+        // objectMapper.writeValue ( jsonWriter, jsonObjectNode );
+
+        String string = objectMapper.writeValueAsString ( jsonObjectNode );
+        jsonWriter.write ( string );
+        jsonWriter.flush();
     }
 }

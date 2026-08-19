@@ -1,6 +1,7 @@
 package dev.ps.pdml.data.node.tagged;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.pdml.data.util.WhitespaceUtil;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.exception.InvalidPdmlDataException;
 import dev.ps.pdml.data.namespace.NodeNamespaces;
 import dev.ps.pdml.data.namespace.NodeNamespace;
@@ -94,7 +95,7 @@ public class TaggedNode extends Node implements Iterable<Node> {
         @Nullable PdmlNodeSpec spec,
         // @Nullable ReaderResourcePosition startLocation,
         // @Nullable ReaderResourcePosition endLocation ) {
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         super ( textLocation );
 
@@ -549,15 +550,20 @@ public class TaggedNode extends Node implements Iterable<Node> {
         }
     }
 
-    public boolean removeWhitespaceTextLeafsInTree ( boolean includeTextLeafSingletons ) {
-
-        return removeNodesInTree (
-            node -> node instanceof TextLeaf textLeaf &&
-                textLeaf.isWhitespace()
-                && ( includeTextLeafSingletons || textLeaf.hasSiblings() ) );
+    public void removePrettyPrintingWhitespaceInTree() {
+        WhitespaceUtil.removePrettyPrintingWhitespaceInTree ( this );
     }
 
-    public boolean removeCommentLeafsInTree() {
+    public void removeWhitespaceInTree (
+        boolean removeWhitespaceTextLeafSiblings,
+        boolean removeWhitespaceTextLeavesInTextNodes,
+        boolean trimTextNodes ) {
+
+        WhitespaceUtil.removeWhitespaceInTree ( this,
+            removeWhitespaceTextLeafSiblings, removeWhitespaceTextLeavesInTextNodes, trimTextNodes );
+    }
+
+    public boolean removeCommentLeavesInTree() {
         return removeNodesInTree ( node -> node instanceof CommentLeaf );
     }
 

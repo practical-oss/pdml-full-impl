@@ -1,7 +1,7 @@
 package dev.ps.pdml.core.writer;
 
+import dev.ps.pdml.core.util.EscapeUtil;
 import dev.ps.pdml.data.CorePdmlConstants;
-import dev.ps.pdml.core.util.PdmlWriterUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.writer.HelperWriter;
@@ -54,26 +54,25 @@ public class CorePdmlWriter implements Flushable, Closeable {
         return write ( CorePdmlConstants.NODE_END_CHAR );
     }
 
-    public CorePdmlWriter writeNodeName ( @NotNull String nodeName ) throws IOException {
-        writeName ( nodeName );
+    public CorePdmlWriter writeTag ( @NotNull String unescapedTag ) throws IOException {
+        EscapeUtil.writeTag ( unescapedTag, writer );
         return this;
     }
 
     public CorePdmlWriter writeSpaceSeparator() throws IOException {
-        // return write ( CorePdmlConstants.SPACE_NAME_VALUE_SEPARATOR );
         return write ( ' ' );
     }
 
-    public CorePdmlWriter writeText ( @NotNull String text ) throws IOException {
-        PdmlWriterUtil.escapeAndWriteNodeText ( text, writer );
+    public CorePdmlWriter writeText ( @NotNull String unescapedText ) throws IOException {
+        EscapeUtil.writeText ( unescapedText, writer );
         return this;
     }
 
 
     // Convenience Methods
 
-    public CorePdmlWriter writeNodeNameAndSpaceSeparator ( @NotNull String nodeName ) throws IOException {
-        writeNodeName ( nodeName );
+    public CorePdmlWriter writeTagAndSpaceSeparator ( @NotNull String unescapedTag ) throws IOException {
+        writeTag ( unescapedTag );
         return writeSpaceSeparator ();
     }
 
@@ -83,9 +82,9 @@ public class CorePdmlWriter implements Flushable, Closeable {
     }
      */
 
-    public CorePdmlWriter writeNodeStart ( @NotNull String nodeName, boolean appendSpaceSeparator ) throws IOException {
+    public CorePdmlWriter writeNodeStart ( @NotNull String unescapedTag, boolean appendSpaceSeparator ) throws IOException {
         writeNodeStartChar();
-        writeNodeName ( nodeName );
+        writeTag ( unescapedTag );
         if ( appendSpaceSeparator ) {
             writeSpaceSeparator ();
         }
@@ -98,11 +97,11 @@ public class CorePdmlWriter implements Flushable, Closeable {
     }
      */
 
-    public CorePdmlWriter writeEmptyNode ( @NotNull String nodeName ) throws IOException {
+    public CorePdmlWriter writeEmptyNode ( @NotNull String unescapedTag ) throws IOException {
 
         writeNodeStartChar();
-        writeNodeName ( nodeName );
-        return writeNodeEndChar ();
+        writeTag ( unescapedTag );
+        return writeNodeEndChar();
     }
 
     /*
@@ -125,31 +124,31 @@ public class CorePdmlWriter implements Flushable, Closeable {
     }
 
     public CorePdmlWriter writeTextNode (
-        @NotNull String nodeName,
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @NotNull String unescapedText ) throws IOException {
 
-        writeNodeStart ( nodeName, true );
-        writeText ( text );
+        writeNodeStart ( unescapedTag, true );
+        writeText ( unescapedText );
         return writeNodeEndChar();
     }
 
     public CorePdmlWriter writeTextNodeOrEmptyNode (
-        @NotNull String nodeName,
-        @Nullable String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @Nullable String unescapedText ) throws IOException {
 
-        if ( isNonEmptyText ( text ) ) {
-            return writeTextNode ( nodeName, text );
+        if ( isNonEmptyText ( unescapedText ) ) {
+            return writeTextNode ( unescapedTag, unescapedText );
         } else {
-            return writeEmptyNode ( nodeName );
+            return writeEmptyNode ( unescapedTag );
         }
     }
 
     public CorePdmlWriter writeTextNodeIfTextNotEmpty (
-        @NotNull String nodeName,
-        @Nullable String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @Nullable String unescapedText ) throws IOException {
 
-        if ( isNonEmptyText ( text ) ) {
-            writeTextNode ( nodeName, text );
+        if ( isNonEmptyText ( unescapedText ) ) {
+            writeTextNode ( unescapedTag, unescapedText );
         }
         return this;
     }
@@ -193,11 +192,11 @@ public class CorePdmlWriter implements Flushable, Closeable {
 
     // Line Mode
 
-    public CorePdmlWriter writeNodeStartLine ( @NotNull String nodeName, boolean increaseIndent ) throws IOException {
+    public CorePdmlWriter writeNodeStartLine ( @NotNull String unescapedTag, boolean increaseIndent ) throws IOException {
 
         writeIndent();
         writeNodeStartChar();
-        writeNodeName ( nodeName );
+        writeTag ( unescapedTag );
         writeLineBreak();
         if ( increaseIndent ) increaseIndent();
         return this;
@@ -217,10 +216,10 @@ public class CorePdmlWriter implements Flushable, Closeable {
         return writeLineBreak();
     }
 
-    public CorePdmlWriter writeEmptyNodeLine ( @NotNull String nodeName ) throws IOException {
+    public CorePdmlWriter writeEmptyNodeLine ( @NotNull String unescapedTag ) throws IOException {
 
         writeIndent();
-        writeEmptyNode ( nodeName );
+        writeEmptyNode ( unescapedTag );
         return writeLineBreak();
     }
 
@@ -231,19 +230,19 @@ public class CorePdmlWriter implements Flushable, Closeable {
      */
 
     public CorePdmlWriter writeTextLine (
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedText ) throws IOException {
 
         writeIndent();
-        writeText ( text );
+        writeText ( unescapedText );
         return writeLineBreak();
     }
 
     public CorePdmlWriter writeTextNodeLine (
-        @NotNull String nodeName,
-        @NotNull String text ) throws IOException {
+        @NotNull String unescapedTag,
+        @NotNull String unescapedText ) throws IOException {
 
         writeIndent();
-        writeTextNode ( nodeName, text );
+        writeTextNode ( unescapedTag, unescapedText );
         return writeLineBreak();
     }
 
@@ -267,10 +266,6 @@ public class CorePdmlWriter implements Flushable, Closeable {
         writer.close();
     }
 
-
-    protected void writeName ( @NotNull String name ) throws IOException {
-        PdmlWriterUtil.writeUnquotedStringLiteral ( name, writer );
-    }
 
     protected @NotNull CorePdmlWriter write ( @NotNull String string ) throws IOException {
 

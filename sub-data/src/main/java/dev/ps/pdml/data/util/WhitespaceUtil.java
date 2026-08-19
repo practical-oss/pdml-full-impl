@@ -1,7 +1,13 @@
 package dev.ps.pdml.data.util;
 
+import dev.ps.pdml.data.node.Node;
+import dev.ps.pdml.data.node.leaf.TextLeaf;
+import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class WhitespaceUtil {
 
@@ -79,5 +85,41 @@ public class WhitespaceUtil {
         } else {
             return string.substring ( 0, lastNonWSIndex + 1 );
         }
+    }
+
+    public static void removePrettyPrintingWhitespaceInTree ( @NotNull TaggedNode rootNode ) {
+        removeWhitespaceInTree ( rootNode, true, false, false );
+    }
+
+    public static void removeWhitespaceInTree (
+        @NotNull TaggedNode rootNode,
+        boolean removeWhitespaceTextLeafSiblings,
+        boolean removeWhitespaceTextLeavesInTextNodes,
+        boolean trimTextNodes ) {
+
+        List<TextLeaf> textLeafsToRemove = new ArrayList<>();
+        rootNode.treeTextLeafStream().forEach ( textLeaf -> {
+            if ( textLeaf.isWhitespace() ) {
+                boolean hasSiblings = textLeaf.hasSiblings();
+                boolean removeTextLeaf = hasSiblings
+                    ? removeWhitespaceTextLeafSiblings
+                    : removeWhitespaceTextLeavesInTextNodes;
+                if ( removeTextLeaf ) {
+                    // don't remove now because that would break the forEach iterator
+                    textLeafsToRemove.add( textLeaf );
+
+                    // remove the separator because the parent node is now a tagged leaf node
+                    if ( removeWhitespaceTextLeavesInTextNodes && ! hasSiblings ) {
+                        TaggedNode parentNode = textLeaf.getParent();
+                        assert parentNode != null;
+                        parentNode.setSeparator ( null );
+                    }
+                }
+            } else if ( trimTextNodes ) {
+                textLeaf.trim();
+            }
+        } );
+
+        textLeafsToRemove.forEach ( Node::removeFromTree );
     }
 }

@@ -4,10 +4,11 @@ import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.inspection.InvalidTextException;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.FromToTextRangeImpl;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.shared.text.reader.util.MultilineStringLiteralUtil;
 import dev.ps.shared.text.reader.util.RawStringLiteralUtil;
-import dev.ps.shared.text.range.TextPosition;
+import dev.ps.shared.text.location.TextPosition;
 import dev.ps.shared.text.unicode.reader.ChainableCodePointReader;
 import dev.ps.shared.text.unicode.reader.CodePointReader;
 import dev.ps.shared.text.unicode.reader.InMemoryCodePointReader;
@@ -20,6 +21,13 @@ import java.io.IOException;
 import static dev.ps.pdml.data.PdmlExtensionsConstants.*;
 
 public class PdmlTokenReader extends CorePdmlTokenReader {
+
+
+    // Comments constants
+    public static final @NotNull String LINE_OR_BLOCK_COMMENT_EXTENSION_START =
+        String.valueOf ( EXTENSION_START_CHAR ) + LINE_COMMENT_START.charAt ( 0 );
+    private static final char LINE_OR_BLOCK_COMMENT_START = LINE_COMMENT_START.charAt ( 0 );
+    private static final char BLOCK_COMMENT_END_CHAR = BLOCK_COMMENT_END.charAt ( 1 );
 
 
     private final @NotNull ChainableCodePointReader codePointReader;
@@ -56,74 +64,106 @@ public class PdmlTokenReader extends CorePdmlTokenReader {
 
     // Comments
 
-    public @Nullable String readSingleOrMultilineComment() throws IOException, MalformedPdmlException {
+    // Only used from parser and this
+    public @Nullable String readLineOrBlockComment() throws IOException, MalformedPdmlException {
 
-        String result = readMultilineComment();
-        if ( result != null ) {
-            return result;
+        String result = readBlockComment();
+        if ( result != null ) return result;
+
+        result = readLineComment();
+        if ( result != null ) return result;
+
+        if ( isAtChar ( LINE_OR_BLOCK_COMMENT_START ) ) {
+            throw error (
+                "A comment must start with '" + LINE_COMMENT_START +
+                "' (line comment) or '" + BLOCK_COMMENT_START + "' (block comment).",
+                "INVALID_COMMENT",
+                currentTextPosition () );
         } else {
-            return readSinglelineComment();
+            return null;
         }
     }
 
-    private @Nullable String readSinglelineComment() throws IOException {
+    public boolean skipLineOrBlockComment() throws IOException, MalformedPdmlException {
+        // return skipBlockComment() || skipSingleLineComment();
+        return readLineOrBlockComment() != null;
+    }
 
+    public @Nullable String readLineComment() throws IOException, MalformedPdmlException {
+
+        /*
         boolean includeLineBreak;
         if ( isAtString ( SINGLE_LINE_COMMENT_WITH_2_SLASHES_EXTENSION_START ) ) {
-            includeLineBreak = true;
-        } else if ( isAtString ( SINGLE_LINE_COMMENT_WITH_1_SLASH_EXTENSION_START ) ) {
+            // includeLineBreak = true;
             includeLineBreak = false;
+        } else if ( isAtString ( SINGLE_LINE_COMMENT_WITH_1_SLASH_EXTENSION_START ) ) {
+            // includeLineBreak = false;
+            codePointReader.advance(); // goto /
+            throw error (
+                "A comment must start with '" + SINGLE_LINE_COMMENT_WITH_2_SLASHES_EXTENSION_START +
+                    "' (single-line comment) or '" + BLOCK_COMMENT_EXTENSION_START + "' (block comment).",
+                "INVALID_COMMENT",
+                currentTextPosition() );
         } else {
             return null;
         }
 
         return codePointReader.readLine ( includeLineBreak );
+         */
+
+        if ( isAtString ( LINE_COMMENT_START ) ) {
+            return codePointReader.readLine ( false );
+        } else {
+            return null;
+        }
     }
 
-    private @Nullable String readMultilineComment() throws IOException, MalformedPdmlException {
+    public @Nullable String readBlockComment() throws IOException, MalformedPdmlException {
 
-        if ( ! isAtMultilineCommentExtensionStart() ) return null;
+        if ( ! isAtString ( PdmlExtensionsConstants.BLOCK_COMMENT_START ) ) return null;
 
         StringBuilder result = new StringBuilder();
-        readMultilineCommentSnippet ( result );
+        readBlockCommentSnippet ( result );
 
         return result.toString();
     }
 
-    private void readMultilineCommentSnippet ( @NotNull StringBuilder result ) throws IOException, MalformedPdmlException {
+    private void readBlockCommentSnippet (
+        @NotNull StringBuilder result ) throws IOException, MalformedPdmlException {
 
-        TextPosition position = currentTextPosition();
-
-        // we are at the start of a multiline comment, i.e. ^/*
-        String caretAndSlash = String.valueOf ( EXTENSION_START_CHAR ) + SINGLE_OR_MULTI_LINE_COMMENT_START_CHAR;
-        boolean ok = skipString ( caretAndSlash );
-        assert ok;
-        result.append ( caretAndSlash );
+        // We are at the start of a block comment, i.e. /*
+        TextPosition startStartPosition = currentTextPosition();
+        codePointReader.advance(); // skip /
+        TextPosition startEndPosition = currentTextPosition();
+        result.append ( LINE_OR_BLOCK_COMMENT_START );
 
         // The comment can start with more than one *, e.g. ^/*** ... ***/
-        // String stars = readWhileAtChar ( MULTI_LINE_COMMENT_STAR_CHAR );
-        String stars = codePointReader.readWhileAtChar ( MULTI_LINE_COMMENT_STAR_CHAR );
+        String stars = codePointReader.readWhileAtChar ( BLOCK_COMMENT_STAR_CHAR );
         assert stars != null && ! stars.isEmpty();
         result.append ( stars );
 
-        String commentEnd = stars + MULTI_LINE_COMMENT_END_CHAR;
+        String commentEnd = stars + BLOCK_COMMENT_END_CHAR;
 
         while ( true ) {
 
             if ( isAtEnd() ) {
                 throw error (
-                    "The comment starting at line " + position.startLine () +
-                        ", column " + position.startColumn () + " is never closed.",
+                    "The block comment must be closed later in the document with '" + BLOCK_COMMENT_END + "'.",
                     "UNCLOSED_COMMENT",
-                    position );
+                    // startStartPosition );
+                    new FromToTextRangeImpl ( codePointReader.currentResource(),
+                        startStartPosition, startEndPosition, codePointReader.parentReaderPosition() ) );
             }
 
             if ( skipString ( commentEnd ) ) {
                 result.append ( commentEnd );
                 return;
 
-            } else if ( isAtMultilineCommentExtensionStart () ) {
-                readMultilineCommentSnippet ( result ); // recursive call for nested comments
+            } else if ( isAtString ( PdmlExtensionsConstants.BLOCK_COMMENT_EXTENSION_START ) ) {
+                result.append ( EXTENSION_START_CHAR );
+                boolean ok = skipExtensionStartChar();
+                assert ok;
+                readBlockCommentSnippet ( result ); // recursive call for nested comments
 
             } else {
                 result.appendCodePoint ( currentCodePoint() );
@@ -132,23 +172,28 @@ public class PdmlTokenReader extends CorePdmlTokenReader {
         }
     }
 
-    private boolean isAtMultilineCommentExtensionStart() throws IOException {
-        return isAtString ( PdmlExtensionsConstants.MULTI_LINE_COMMENT_EXTENSION_START );
-    }
-
-    public boolean skipSingleOrMultilineComment() throws IOException, MalformedPdmlException {
-        // return skipMultilineComment() || skipSinglelineComment();
-        return readSingleOrMultilineComment() != null;
-    }
-
+    // TODO This should be a parser method
     public boolean skipWhitespaceAndComments() throws IOException, MalformedPdmlException {
 
         if ( isAtEnd() ) return false;
 
         boolean skipped = false;
+        /*
         while ( true ) {
             if ( skipWhitespace() ||
-                skipSingleOrMultilineComment() ) {
+                skipLineOrBlockComment() ) {
+                skipped = true;
+            } else {
+                break;
+            }
+        }
+         */
+        while ( true ) {
+            if ( skipWhitespace() ) {
+                skipped = true;
+            } else if ( isAtString ( LINE_OR_BLOCK_COMMENT_EXTENSION_START ) ) {
+                skipExtensionStartChar();
+                skipLineOrBlockComment();
                 skipped = true;
             } else {
                 break;
@@ -286,7 +331,7 @@ public class PdmlTokenReader extends CorePdmlTokenReader {
     private @NotNull MalformedPdmlException error (
         @NotNull String message,
         @NotNull String id,
-        @Nullable TextRange location ) {
+        @Nullable TextLocation location ) {
 
         return new MalformedPdmlException ( message, id, location );
     }

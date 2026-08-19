@@ -36,10 +36,10 @@ module dev.ps.pdml {
 
     exports dev.ps.pdml.json;
 
-    exports dev.ps.pdml.ext;
-    exports dev.ps.pdml.ext.scripting.context;
-    exports dev.ps.pdml.ext.types;
-    exports dev.ps.pdml.ext.types.instances;
+    exports dev.ps.pdml.cmdnode;
+    exports dev.ps.pdml.cmdnode.scripting.context;
+    exports dev.ps.pdml.cmdnode.types;
+    exports dev.ps.pdml.cmdnode.types.instances;
     exports dev.ps.pdml.parser;
     exports dev.ps.pdml.parser.util;
 
@@ -62,9 +62,11 @@ module dev.ps.pdml {
     exports dev.ps.pdml.xml;
     exports dev.ps.pdml.xml.eventhandlers;
 
+    exports dev.ps.pdml.companion;
     exports dev.ps.pdml.companion.commands;
     exports dev.ps.pdml.companion.commands.xml;
     exports dev.ps.pdml.companion.commands.scripting;
     exports dev.ps.pdml.companion.commands.scriptingapidoc;
     exports dev.ps.pdml.companion.cli;
+    exports dev.ps.pdml.companion.commands.blackboxtest;
 }

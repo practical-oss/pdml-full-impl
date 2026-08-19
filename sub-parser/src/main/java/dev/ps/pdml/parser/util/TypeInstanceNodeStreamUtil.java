@@ -2,7 +2,7 @@ package dev.ps.pdml.parser.util;
 
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.text.inspection.InvalidDataException;
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.exception.InvalidPdmlDataException;
 import dev.ps.pdml.data.node.NodeTag;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
@@ -59,7 +59,7 @@ public class TypeInstanceNodeStreamUtil {
                     return false;
                 }
 
-                @NotNull TextRange startPosition = pdmlReader.currentTextPosition();
+                @NotNull TextLocation startPosition = pdmlReader.currentTextPosition();
                 /*
                 @Nullable TaggedNode taggedNode = pdmlParser.parseTaggedNodeStartAndTag();
                 if ( taggedNode == null ) {
@@ -112,7 +112,7 @@ public class TypeInstanceNodeStreamUtil {
                     throw new RuntimeException ( new InvalidPdmlDataException (
                         "An empty text node (null) is not allowed.",
                         "INVALID_EMPTY_TEXT_NODE",
-                        typeInstanceNode.tag().tagPositionOrRange() ) );
+                        typeInstanceNode.tag().tagLocation () ) );
                 }
             } );
         }

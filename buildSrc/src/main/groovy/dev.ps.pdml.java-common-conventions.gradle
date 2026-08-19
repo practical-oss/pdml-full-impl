@@ -17,8 +17,8 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
  */
-    sourceCompatibility = "17"
-    targetCompatibility = "17"
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 test {
@@ -33,7 +33,7 @@ tasks.withType(JavaCompile) {
     // options.compilerArgs += '--enable-preview'
 
     options.compilerArgs += '--release'
-    options.compilerArgs += '17'
+    options.compilerArgs += '21'
     options.compilerArgs += '-Xlint:deprecation'
     options.compilerArgs += '-Xlint:unchecked'
 }

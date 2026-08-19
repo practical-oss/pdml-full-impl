@@ -3,7 +3,7 @@ package dev.ps.pdml.core.parser;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
-import dev.ps.shared.text.range.*;
+import dev.ps.shared.text.location.*;
 import dev.ps.shared.text.reader.util.ParsedString;
 import dev.ps.pdml.core.reader.CorePdmlTokenReader;
 import dev.ps.pdml.data.CorePdmlConstants;
@@ -67,14 +67,14 @@ public class CorePdmlParser {
 
         TaggedNode rootNode = parseTaggedNode();
 
-        if ( ! ignoreTextAfterRootNodeEnd ) {
+        if ( rootNode != null && ! ignoreTextAfterRootNodeEnd ) {
             requireDocumentEnd();
         }
 
         return rootNode;
     }
 
-    public void skipWhitespaceBeforeRootNode() throws IOException {
+    public void skipWhitespaceBeforeRootNode() throws IOException, PdmlException {
         reader.skipWhitespace();
     }
 
@@ -82,7 +82,7 @@ public class CorePdmlParser {
 
         reader.skipWhitespace();
         if ( reader.isNotAtEnd() ) {
-            throw abortingErrorAtCurrentPosition ( "No more text expected", "END_OF_PDML_DOCUMENT_EXPECTED" );
+            throw malformedErrorAtCurrentPosition ( "Text after the end of a PDML document is not allowed (except whitespace).", "END_OF_PDML_DOCUMENT_EXPECTED" );
         }
     }
 
@@ -118,7 +118,7 @@ public class CorePdmlParser {
 
         ParsedString<?> parsedString = reader.readWithTextRange ( CorePdmlTokenReader::readTag );
         return parsedString != null
-            ? NodeTag.create ( parsedString.string(), parsedString.source(), null )
+            ? NodeTag.create ( parsedString.string(), parsedString.location (), null )
             : null;
     }
 
@@ -130,7 +130,7 @@ public class CorePdmlParser {
 
         ParsedString<?> parsedText = reader.readWithTextRange ( CorePdmlTokenReader::readTextLeaf );
         return parsedText != null
-            ? new TextLeaf ( parsedText.string(), parsedText.source() )
+            ? new TextLeaf ( parsedText.string(), parsedText.location () )
             : null;
     }
 
@@ -286,7 +286,7 @@ public class CorePdmlParser {
 
         requireTaggedNodeEnd ( taggedNode );
 
-        TextRange textRange = createTextRange ( startOffset );
+        TextLocation textRange = createTextRange ( startOffset );
         return textLeaf != null
             ? new NonNullTextNode ( taggedNode.getTag(), textLeaf, textRange )
             : new NullTextNode ( taggedNode.getTag(), textRange );
@@ -298,7 +298,7 @@ public class CorePdmlParser {
     public @NotNull TaggedNode requireDocument() throws IOException, PdmlException {
         return require (
             this::parseDocument,
-            "Root node required (e.g. [root ...])",
+            "Character '" + CorePdmlConstants.NODE_START_CHAR + "', followed by a tag, is required to start a PDML document (e.g. [root ...]).",
             "ROOT_NODE_REQUIRED" );
     }
 
@@ -307,14 +307,14 @@ public class CorePdmlParser {
     }
 
     public @NotNull NodeTag requireTag() throws IOException, PdmlException {
-        return require ( this::parseTag, "Node tag required.", "NODE_TAG_REQUIRED" );
+        return require ( this::parseTag, "A tag is required after the node start character '" + CorePdmlConstants.NODE_START_CHAR + "' (e.g. [name ...]).", "NODE_TAG_REQUIRED" );
     }
 
     public @NotNull String requireSeparator() throws IOException, PdmlException {
         return require (
             this::parseSeparator,
-            "A tag/value separator is required (e.g. a space).",
-            "SEPARATOR_REQUIRED" );
+            "A separator (e.g. a space) or character '" + CorePdmlConstants.NODE_END_CHAR + "' is required after a tag.",
+            "SEPARATOR_OR_END_NODE_REQUIRED" );
     }
 
     public @NotNull TextLeaf requireTextLeaf() throws IOException, PdmlException {
@@ -327,7 +327,7 @@ public class CorePdmlParser {
         // return require ( () -> parseChildNodes ( parentNode ), "Child nodes required", "CHILD_NODES_REQUIRED" );
         parseChildNodes ( parentNode );
         if ( parentNode.isEmpty() ) {
-            throw abortingErrorAtCurrentPosition ( "Child nodes required", "CHILD_NODES_REQUIRED" );
+            throw malformedErrorAtCurrentPosition ( "Child nodes required", "CHILD_NODES_REQUIRED" );
         }
     }
 
@@ -359,13 +359,13 @@ public class CorePdmlParser {
 
         if ( ! parseNodeEnd() ) {
             String message = "Expecting '" + CorePdmlConstants.NODE_END_CHAR + "' to close node '" + taggedNode.getTag() + "'";
-            @Nullable TextRange nodeLocation = taggedNode.getTag().startLocation();
+            @Nullable TextLocation nodeLocation = taggedNode.getTag().location();
             if ( nodeLocation != null ) {
-                message = message + " at " + nodeLocation.startLineColumn();
+                message = message + " at position " + nodeLocation.startLineColumn();
             }
             message = message + ".";
 
-            throw abortingErrorAtCurrentPosition (
+            throw malformedErrorAtCurrentPosition (
                 message,
                 "EXPECTING_NODE_END" );
         }
@@ -403,7 +403,7 @@ public class CorePdmlParser {
         if ( o != null ) {
             return o;
         } else {
-            throw abortingErrorAtCurrentPosition ( errorMessage, errorId );
+            throw malformedErrorAtCurrentPosition ( errorMessage, errorId );
         }
     }
 
@@ -415,7 +415,7 @@ public class CorePdmlParser {
 
     // Error Handling
 
-    private MalformedPdmlException abortingErrorAtCurrentPosition (
+    protected MalformedPdmlException malformedErrorAtCurrentPosition (
         @NotNull String message, @NotNull String id ) {
 
         return new MalformedPdmlException ( message, id, reader.currentTextPosition() );

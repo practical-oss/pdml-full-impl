@@ -1,7 +1,8 @@
 package dev.ps.pdml.parser;
 
+import dev.ps.pdml.cmdnode.MutableCommandNodes;
 import dev.ps.pdml.data.nodespec.PdmlNodeSpecs;
-import dev.ps.pdml.ext.types.PdmlTypes;
+import dev.ps.pdml.cmdnode.types.PdmlTypes;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 
@@ -15,6 +16,8 @@ public class PdmlParserConfigBuilder {
 
     private boolean ignoreTextAfterEndOfRootNode =
         PdmlParserConfig.DEFAULT_IGNORE_TEXT_AFTER_ROOT_NODE_END;
+    private @NotNull MutableCommandNodes commandNodes =
+        PdmlParserConfig.DEFAULT_COMMAND_NODES;
     private @Nullable PdmlNodeSpecs nodeSpecs =
         PdmlParserConfig.DEFAULT_NODE_SPECS;
     private @Nullable PdmlTypes types = PdmlTypes.STANDARD_TYPES;
@@ -31,6 +34,13 @@ public class PdmlParserConfigBuilder {
         boolean ignoreTextAfterEndOfRootNode ) {
 
         this.ignoreTextAfterEndOfRootNode = ignoreTextAfterEndOfRootNode;
+        return this;
+    }
+
+    public PdmlParserConfigBuilder commandNodes (
+        @NotNull MutableCommandNodes commandNodes ) {
+
+        this.commandNodes = commandNodes;
         return this;
     }
 
@@ -66,6 +76,7 @@ public class PdmlParserConfigBuilder {
 
         return new PdmlParserConfig (
             ignoreTextAfterEndOfRootNode,
+            commandNodes,
             nodeSpecs,
             types,
             ignoreComments,

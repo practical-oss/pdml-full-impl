@@ -19,7 +19,7 @@ class PdmlDecoderUtilTest {
         assertEquals ( "a\nb",
             PdmlDecoderUtil.decodeString ( CommonTypes.STRING, "a\\nb" ) );
         assertEquals ( "foobar",
-            PdmlDecoderUtil.decodeString ( CommonTypes.STRING, "^[const c = foo]^[ins_const c]bar" ) );
+            PdmlDecoderUtil.decodeString ( CommonTypes.STRING, "^[const c = foo]^[ins-const c]bar" ) );
 
         NativeListType<Integer> type = new NativeListType<> ( "int_list", CommonTypes.INT32, null );
         assertEquals ( List.of ( 1, 123 ),

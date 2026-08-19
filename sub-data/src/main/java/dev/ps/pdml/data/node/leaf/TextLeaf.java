@@ -1,6 +1,6 @@
 package dev.ps.pdml.data.node.leaf;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.exception.InvalidPdmlDataException;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
@@ -19,7 +19,7 @@ public class TextLeaf extends UntaggedLeafNode {
 
     public TextLeaf (
         @NotNull String text,
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         super ( text, textLocation );
         assert ! text.isEmpty();
@@ -47,6 +47,24 @@ public class TextLeaf extends UntaggedLeafNode {
 
     public @Nullable String rightTrimmedText() {
         return WhitespaceUtil.trimRight ( text );
+    }
+
+    public void trim() {
+
+        String trimmedText = trimmedText();
+        if ( trimmedText != null ) {
+            text = trimmedText;
+        } else {
+            throw new IllegalStateException ( "Text leaf contains only whitespace and therefore it cannot be trimmed." );
+        }
+    }
+
+    public void trimIfNotOnlyWhitespace() {
+
+        String trimmedText = trimmedText();
+        if ( trimmedText != null ) {
+            text = trimmedText;
+        }
     }
 
     /*

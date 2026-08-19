@@ -5,7 +5,7 @@ import dev.ps.prt.argument.StringArguments;
 import dev.ps.prt.type.decoder.DecoderUtil;
 import dev.ps.prt.type.record.RecordInstanceUtil;
 import dev.ps.prt.parameter.Parameters;
-import dev.ps.prt.parameter.ParametersBuilder;
+import dev.ps.prt.parameter.MutableParameters;
 import dev.ps.prt.type.CommonTypes;
 import dev.ps.prt.type.record.impl.GenericRecordInstance;
 import dev.ps.prt.type.record.impl.GenericRecordType;
@@ -21,13 +21,13 @@ class RecordInstanceUtilTest {
         StringArguments strings = StringArguments.builder()
             .append ( "name", "Albert" )
             .append ( "age", "25" )
-            .build();
+            .toImmutable ();
 
-        Parameters fields = new ParametersBuilder()
+        Parameters fields = new MutableParameters ()
             .string ( "name", null, null )
             // .appendInteger ( "age", 20 )
             .append ( "age", CommonTypes.INT32, () -> 20 )
-            .build();
+            .toImmutable ();
         GenericRecordType recordType = new GenericRecordType (
             "Person", fields, null );
 
@@ -44,7 +44,7 @@ class RecordInstanceUtilTest {
 
         strings = StringArguments.builder()
             .append ( "name", "Albert" )
-            .build();
+            .toImmutable ();
 
         result = RecordInstanceUtil.stringsToGenericRecord (
             strings, recordType, decoderSupplier, false );
@@ -57,7 +57,7 @@ class RecordInstanceUtilTest {
         strings = StringArguments.builder()
             .append ( "name", "Albert" )
             .append ( "invalid", "Foo" )
-            .build();
+            .toImmutable ();
         StringArguments finalStrings = strings;
         assertThrows ( InvalidDataException.class, () -> RecordInstanceUtil.stringsToGenericRecord (
             finalStrings, recordType, decoderSupplier, false ) );

@@ -3,7 +3,7 @@ package dev.ps.pdml.parser.util;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.inspection.InvalidDataException;
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
 import dev.ps.pdml.data.exception.InvalidPdmlDataException;
 import dev.ps.pdml.data.node.NodeTag;
@@ -72,7 +72,7 @@ public class StreamHelper {
     public static void checkUniqueKey (
         @NotNull Map<String,?> map,
         @NotNull String key,
-        @Nullable TextRange location ) throws InvalidDataException {
+        @Nullable TextLocation location ) throws InvalidDataException {
 
         if ( map.containsKey ( key ) ) {
             throw new InvalidPdmlDataException (

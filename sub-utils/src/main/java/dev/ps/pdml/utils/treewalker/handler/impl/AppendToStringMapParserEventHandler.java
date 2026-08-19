@@ -47,7 +47,7 @@ public class AppendToStringMapParserEventHandler implements PdmlTreeWalkerEventH
             throw new PdmlException (
                 "Node '" + parent + "' cannot have child nodes.",
                 "CHILD_NODE_NOT_ALLOWED",
-                startEvent.tag().tagPositionOrRange() );
+                startEvent.tag().tagLocation () );
         }
 
         @NotNull String key = startEvent.tag ().qualifiedTag ();
@@ -55,7 +55,7 @@ public class AppendToStringMapParserEventHandler implements PdmlTreeWalkerEventH
             throw new PdmlException (
                 "Node '" + key + "' has already been defined.",
                 "KEY_EXISTS_ALREADY",
-                startEvent.tag().tagPositionOrRange() );
+                startEvent.tag().tagLocation () );
         }
 
         currentKey = key;
@@ -105,7 +105,7 @@ public class AppendToStringMapParserEventHandler implements PdmlTreeWalkerEventH
                 throw new PdmlException (
                     "Node '" + parent + "' cannot contain text.",
                     "TEXT_NOT_ALLOWED",
-                    parent.tag().tagPositionOrRange() );
+                    parent.tag().tagLocation () );
             }
         }
 

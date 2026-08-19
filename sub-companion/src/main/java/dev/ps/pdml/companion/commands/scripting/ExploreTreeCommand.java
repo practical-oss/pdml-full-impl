@@ -1,76 +1,69 @@
 package dev.ps.pdml.companion.commands.scripting;
 
-import dev.ps.prt.command.Command;
+import dev.ps.pdml.companion.PdmlcApplication;
+import dev.ps.prt.command.cli.CLICommand;
 import dev.ps.shared.basics.utilities.documentation.SimpleDocumentation;
 import dev.ps.pdml.utils.scripting.TreeExplorerScriptUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.pjse.PjseConfig;
 import dev.ps.pjse.util.SourceCodeFileUtil;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
+import dev.ps.shared.text.ioresource.reader.FileReaderResource;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
+import dev.ps.prt.util.ReaderResourceUtil;
 import dev.ps.prt.argument.Arguments;
-import dev.ps.prt.command.output.CommandOutput;
-import dev.ps.prt.command.output.ErrorCommandOutput;
-import dev.ps.prt.command.output.VoidCommandOutput;
-import dev.ps.prt.parameter.NewParam;
+import dev.ps.prt.command.output.CLICommandOutput;
+import dev.ps.prt.command.output.FailureCLICommandOutput;
+import dev.ps.prt.command.output.SuccessCLICommandOutput;
 import dev.ps.prt.parameter.Parameter;
 import dev.ps.prt.parameter.Parameters;
 
 import java.nio.file.Path;
-import java.util.List;
 
-import static dev.ps.pdml.companion.commands.PdmlCommands.APP_NAME;
-import static dev.ps.pdml.companion.commands.SharedParameters.OPTIONAL_PDML_INPUT_FILE;
+import static dev.ps.pdml.companion.commands.SharedParameters.PDML_INPUT_FILE_OR_STDIN;
 
-public class ExploreTreeCommand extends Command {
+public class ExploreTreeCommand extends CLICommand {
 
     public static final @NotNull Parameter<Path> EXPLORER_JAVA_SOURCE_CODE_FILE =
-        NewParam.filePath (
-            "explorer",
-            List.of ( "e" ),
-            null,
-            () -> new SimpleDocumentation (
-                "Explorer Java Source Code File",
-                "The path of the file that contains the Java source code of the explorer.",
-                "utils/my-explorer.java" ) );
+        Parameter.<Path>builder()
+            .names ( "explorer", "e" )
+            .typePath()
+            .title ( "Explorer Java Source Code File" )
+            .description ( "The path of the file that contains the Java source code of the explorer." )
+            .examples ( "-e utils/my-explorer.java" ).build();
 
-    public static final @NotNull ExploreTreeCommand COMMAND = new ExploreTreeCommand();
+    public static final @NotNull ExploreTreeCommand INSTANCE = new ExploreTreeCommand();
 
 
     private ExploreTreeCommand() {
         super (
-            "explore_tree", "et",
-            new Parameters ( OPTIONAL_PDML_INPUT_FILE, EXPLORER_JAVA_SOURCE_CODE_FILE ),
+            "explore-tree", "et",
+            new Parameters ( PDML_INPUT_FILE_OR_STDIN, EXPLORER_JAVA_SOURCE_CODE_FILE ),
             () -> new SimpleDocumentation (
-                "Explore a PDML AST With Java Source Code",
+                "Explore a PDML AST Using Java Source Code",
                 "",
-                APP_NAME + " explore_tree -i data/data.pdml -e utils/my-explorer.java" ) );
+                PdmlcApplication.CLI_APP_NAME + " explore-tree -i data/data.pdml -e utils/my-explorer.java" ) );
     }
 
 
-    public @NotNull CommandOutput execute ( @Nullable Arguments arguments ) {
+    public @NotNull CLICommandOutput execute ( @Nullable Arguments arguments ) {
 
-        assert arguments != null;
-
-        @Nullable Path inputFile = arguments.nullableCastedValue ( OPTIONAL_PDML_INPUT_FILE.name() );
-        @NotNull Path explorerFile = arguments.nonNullCastedValue ( EXPLORER_JAVA_SOURCE_CODE_FILE.name() );
-        // execute ( inputFile, outputFile, transformerFile );
-
-        // DebugUtils.writeNameValue ( "inputFile", inputFile );
-
-        boolean isOnlyJavaMethodBodyCode = SourceCodeFileUtil.isJavaSourceCodeSnippetFile ( explorerFile );
-        // DebugUtils.writeNameValue ( "isOnlyJavaMethodBodyCode", isOnlyJavaMethodBodyCode );
-        // TextResourceReader textResourceReader = TextFileReaderUtil.getUTF8FileOrStdinReader ( inputFile );
-        // ExplorerUtil.explorePdmlFile ( inputFile, explorerFile, isOnlyJavaMethodBodyCode );
         try {
+            assert arguments != null;
+            ReaderResource pdmlReaderResource = ReaderResourceUtil.createForFileOrStdinArgument (
+                arguments, PDML_INPUT_FILE_OR_STDIN );
+            @NotNull Path explorerJavaFile = arguments.nonNullCastedValue ( EXPLORER_JAVA_SOURCE_CODE_FILE );
+            ReaderResource javaReaderResource = new FileReaderResource ( explorerJavaFile );
+            boolean isJavaSourceCodeSnippetFile = SourceCodeFileUtil.isJavaSourceCodeSnippetFile ( explorerJavaFile );
+
             TreeExplorerScriptUtil.exploreCode (
-                TextResourceReader.createForOptionalFilePathOrStdin ( inputFile ),
-                new TextResourceReader ( explorerFile ), isOnlyJavaMethodBodyCode, PjseConfig.DEFAULT_CONFIG );
+                pdmlReaderResource, javaReaderResource, isJavaSourceCodeSnippetFile, PjseConfig.DEFAULT_CONFIG );
+
         } catch ( Exception e ) {
-            return new ErrorCommandOutput ( e );
+            return FailureCLICommandOutput.ofException ( e );
         }
 
-        return VoidCommandOutput.INSTANCE;
+        return SuccessCLICommandOutput.ofVoid();
     }
 
 /*

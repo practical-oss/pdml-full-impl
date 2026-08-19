@@ -1,15 +1,15 @@
 package dev.ps.pdml.data.namespace;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.PdmlExtensionsConstants;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 
 public record NodeNamespace (
     @NotNull String namePrefix,
-    @Nullable TextRange namePrefixPositionOrRange,
+    @Nullable TextLocation namePrefixPositionOrRange,
     @NotNull String URI,
-    @Nullable TextRange URIPositionOrRange ) {
+    @Nullable TextLocation URIPositionOrRange ) {
 
 
     public NodeNamespace (

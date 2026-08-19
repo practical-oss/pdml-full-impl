@@ -20,11 +20,15 @@ public class CorePdmlParserUtil {
         @NotNull ReaderResource resource,
         @NotNull CorePdmlParserConfig config ) throws IOException, PdmlException {
 
+/*
         try ( Reader reader = resource.newReader() ) {
             CorePdmlParser_OLD parser = new CorePdmlParser_OLD (
                 reader, resource, config );
             return parser.requireRootNode();
         }
+ */
+        CorePdmlParser parser = new CorePdmlParser ( resource, config );
+        return parser.requireDocument();
     }
 
     public static @NotNull TaggedNode parseResource (

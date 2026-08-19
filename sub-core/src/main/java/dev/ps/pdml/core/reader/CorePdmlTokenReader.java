@@ -4,7 +4,7 @@ import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.inspection.InvalidTextException;
 import dev.ps.shared.text.ioresource.reader.ReaderResource;
-import dev.ps.shared.text.range.*;
+import dev.ps.shared.text.location.*;
 import dev.ps.shared.text.reader.util.CodePointEscapeUtil;
 import dev.ps.shared.text.reader.util.ParsedString;
 import dev.ps.shared.text.unicode.reader.CodePointReader;
@@ -69,7 +69,7 @@ public class CorePdmlTokenReader {
         @NotNull Set<Character> invalidChars ) throws IOException, MalformedPdmlException {
 
         return readTextFragment ( endChars, invalidChars,
-            CorePdmlConstants.TAG_AND_TEXT_ESCAPE_CODE_POINTS,
+            CorePdmlConstants.CODE_POINT_ESCAPES,
             false );
     }
 
@@ -141,7 +141,7 @@ public class CorePdmlTokenReader {
 
         try {
             CodePointEscapeUtil.unescapeSequenceAndAppend (
-                codePointReader, escapeMap, allowUnicodeEscapes, result );
+                codePointReader, escapeMap, false, allowUnicodeEscapes, result );
 
         } catch ( InvalidTextException e ) {
             String id = e.id ();
@@ -358,7 +358,7 @@ public class CorePdmlTokenReader {
     private @NotNull MalformedPdmlException error (
         @NotNull String message,
         @NotNull String id,
-        @Nullable TextRange location ) {
+        @Nullable TextLocation location ) {
 
         return new MalformedPdmlException ( message, id, location );
     }

@@ -73,7 +73,7 @@ public class StringLiteralsUtil {
                 throw new InvalidPdmlDataException (
                     "Duplicate element. Element '" + string + "' has already been added to the set.",
                     "DUPLICATE_STRING_IN_SET",
-                    textSegment.source() );
+                    textSegment.location () );
             }
             set.add ( string );
         }, pdmlParser, allowNullValues );

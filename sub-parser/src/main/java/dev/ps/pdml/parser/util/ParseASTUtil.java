@@ -4,10 +4,8 @@ import dev.ps.shared.text.ioresource.reader.ReaderResource;
 import dev.ps.pdml.data.exception.PdmlException;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.shared.basics.annotations.NotNull;
-import dev.ps.shared.basics.annotations.Nullable;
 import dev.ps.shared.text.ioresource.reader.FileReaderResource;
 import dev.ps.shared.text.ioresource.reader.StringReaderResource;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
 import dev.ps.pdml.parser.PdmlParser;
 import dev.ps.pdml.parser.PdmlParserConfig;
 
@@ -103,19 +101,5 @@ public class ParseASTUtil {
         @NotNull Path filePath ) throws IOException, PdmlException {
 
         return parseReaderResource ( new FileReaderResource ( filePath ) );
-    }
-
-
-    // TextResourceReader
-
-    @Deprecated
-    public static @NotNull TaggedNode parseReader (
-        @NotNull TextResourceReader textResourceReader,
-        @NotNull PdmlParserConfig config ) throws IOException, PdmlException {
-
-        return parseReader (
-            textResourceReader.getReader(),
-            (ReaderResource) textResourceReader.getTextResource(),
-            config );
     }
 }

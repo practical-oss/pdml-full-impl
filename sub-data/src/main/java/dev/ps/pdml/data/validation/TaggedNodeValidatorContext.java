@@ -1,6 +1,6 @@
 package dev.ps.pdml.data.validation;
 
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 import dev.ps.pdml.data.node.NodeTag;
 import dev.ps.pdml.data.node.tagged.TaggedNode;
 import dev.ps.shared.basics.annotations.NotNull;
@@ -71,7 +71,7 @@ public class TaggedNodeValidatorContext {
     public void errorDetected (
         @NotNull String message,
         @NotNull String id,
-        @Nullable TextRange textLocation ) {
+        @Nullable TextLocation textLocation ) {
 
         messageHandler.handleError ( message, id, textLocation );
     }

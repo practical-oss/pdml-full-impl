@@ -1,11 +1,7 @@
 @echo off
 
-rem echo ERROR WITH VERSION 1.16
-rem echo OK WITH VERSION 1.15
-rem echo Native JRelease OK WITH 1.16
-rem pause
+cd ..\..\app
 
-cd ..
 call ..\gradlew jreleaserConfig
 
 pause

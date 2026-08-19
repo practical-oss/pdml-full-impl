@@ -1,74 +1,75 @@
 package dev.ps.pdml.companion.commands.xml;
 
-import dev.ps.pdml.data.exception.PdmlException;
-import dev.ps.prt.command.Command;
+import dev.ps.pdml.companion.PdmlcApplication;
+import dev.ps.prt.command.cli.CLICommand;
 import dev.ps.shared.basics.utilities.documentation.SimpleDocumentation;
-import dev.ps.pdml.companion.commands.PdmlCommandsHelper;
+import dev.ps.pdml.companion.commands.CommandsHelper;
 import dev.ps.pdml.parser.PdmlParserConfigBuilder;
 import dev.ps.pdml.xml.PdmlToXMLUtil;
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.ioresource.reader.TextResourceReader;
-import dev.ps.shared.text.ioresource.writer.TextResourceWriter;
+import dev.ps.shared.text.inspection.InvalidDataException;
+import dev.ps.shared.text.ioresource.reader.ReaderResource;
+import dev.ps.prt.util.ReaderResourceUtil;
 import dev.ps.prt.argument.Arguments;
-import dev.ps.prt.command.output.CommandOutput;
-import dev.ps.prt.command.output.ErrorCommandOutput;
-import dev.ps.prt.command.output.VoidCommandOutput;
+import dev.ps.prt.command.output.CLICommandOutput;
+import dev.ps.prt.command.output.FailureCLICommandOutput;
+import dev.ps.prt.command.output.SuccessCLICommandOutput;
 import dev.ps.prt.parameter.CommonParameters;
 import dev.ps.prt.parameter.Parameter;
 import dev.ps.prt.parameter.Parameters;
+import dev.ps.shared.text.ioresource.writer.WriterResource;
+import dev.ps.prt.util.WriterResourceUtil;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import static dev.ps.pdml.companion.commands.PdmlCommands.APP_NAME;
 import static dev.ps.pdml.companion.commands.SharedParameters.*;
 
-public class PdmlToXMLCommand extends Command {
+public class PdmlToXMLCommand extends CLICommand {
 
-    private static final @NotNull Parameter<Path> OPTIONAL_XML_OUTPUT_FILE =
-        CommonParameters.optionalOutputFile (
+    private static final @NotNull Parameter<Path> XML_OUTPUT_FILE_OR_STDOUT =
+        CommonParameters.outputFileOrStdout (
             "XML Output File",
-            "The path of the XML output file.", true,
-            "output/data.xml" );
+            "The path of the XML output file.",
+            "-o output/data.xml" );
 
-    public static final @NotNull PdmlToXMLCommand COMMAND = new PdmlToXMLCommand();
 
+    public static final @NotNull PdmlToXMLCommand INSTANCE = new PdmlToXMLCommand();
 
     private PdmlToXMLCommand() {
         super (
-            "PDML_to_XML", "p2x",
-            new Parameters ( OPTIONAL_PDML_INPUT_FILE, OPTIONAL_XML_OUTPUT_FILE ),
+            "pdml-to-xml", "p2x",
+            new Parameters ( PDML_INPUT_FILE_OR_STDIN, XML_OUTPUT_FILE_OR_STDOUT ),
             () -> new SimpleDocumentation (
                 "Convert PDML to XML",
                 "Convert a PDML document to an XML document.",
-                APP_NAME + " p2x -i input/data.pdml -o output/data.xml" ) );
+                PdmlcApplication.CLI_APP_NAME + " p2x -i input/data.pdml -o output/data.xml" ) );
     }
 
-    public @NotNull CommandOutput execute ( @Nullable Arguments arguments ) {
 
-        assert arguments != null;
+    public @NotNull CLICommandOutput execute ( @Nullable Arguments arguments ) {
 
-        @Nullable Path inputFile = arguments.nullableCastedValue ( OPTIONAL_PDML_INPUT_FILE );
-        @Nullable Path outputFile = arguments.nullableCastedValue ( OPTIONAL_XML_OUTPUT_FILE );
+        try {
+            assert arguments != null;
+            ReaderResource pdmlReaderResource = ReaderResourceUtil.createForFileOrStdinArgument (
+                arguments, PDML_INPUT_FILE_OR_STDIN );
+            WriterResource xmlWriterResource = WriterResourceUtil.createForFileOrStdoutArgument (
+                arguments, XML_OUTPUT_FILE_OR_STDOUT, true );
 
-        try ( TextResourceReader pdmlReader =
-                  TextResourceReader.createForOptionalFilePathOrStdin ( inputFile );
-              TextResourceWriter xmlWriter =
-                  TextResourceWriter.createForOptionalFilePathOrStdout ( outputFile, true ) ) {
-
-            PdmlToXMLUtil.readerToWriter (
-                pdmlReader, xmlWriter,
+            PdmlToXMLUtil.pdmlToXMLResource (
+                pdmlReaderResource, xmlWriterResource,
                 // PdmlParserConfig.defaultConfig() );
                 new PdmlParserConfigBuilder().ignoreComments ( false ).build() );
 
-            PdmlCommandsHelper.fileCreatedMessageToStdout ( xmlWriter );
-        } catch ( IOException | PdmlException | TransformerException | ParserConfigurationException e ) {
-            return new ErrorCommandOutput ( e );
+            CommandsHelper.fileCreatedMessageToStdout ( xmlWriterResource );
+
+        } catch ( IOException | InvalidDataException | TransformerException | ParserConfigurationException e ) {
+            return FailureCLICommandOutput.ofException ( e );
         }
 
-        return VoidCommandOutput.INSTANCE;
+        return SuccessCLICommandOutput.ofVoid();
     }
 }

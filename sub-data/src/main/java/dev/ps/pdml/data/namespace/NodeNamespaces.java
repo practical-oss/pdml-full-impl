@@ -2,7 +2,7 @@ package dev.ps.pdml.data.namespace;
 
 import dev.ps.shared.basics.annotations.NotNull;
 import dev.ps.shared.basics.annotations.Nullable;
-import dev.ps.shared.text.range.TextRange;
+import dev.ps.shared.text.location.TextLocation;
 
 import java.util.*;
 
@@ -10,13 +10,13 @@ public class NodeNamespaces {
 
 
 
-    private final @Nullable TextRange textLocation;
-    public @Nullable TextRange getTextLocation () { return textLocation; }
+    private final @Nullable TextLocation textLocation;
+    public @Nullable TextLocation getTextLocation () { return textLocation; }
 
     private final @NotNull Map<String, NodeNamespace> URIMap;
     private final @NotNull Map<String, NodeNamespace> namePrefixMap;
 
-    public NodeNamespaces ( @Nullable TextRange textLocation ) {
+    public NodeNamespaces ( @Nullable TextLocation textLocation ) {
 
         this.textLocation = textLocation;
         this.URIMap = new HashMap<>();
